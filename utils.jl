@@ -26,6 +26,9 @@ function hfun_page_titles(; dirname="content")
     write(c, "<ul class=\"post-list\">")
 
     for p in pages
+        if pagevar(p, "draft"; default=false)
+            continue
+        end
         title = pagevar(p, "title")
         date = getdate(p)
         url = get_url(p)

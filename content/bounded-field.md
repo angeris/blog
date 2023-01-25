@@ -1,6 +1,7 @@
 +++
 title = "When are fields bounded over all possible designs?"
 date = Date(2022, 4, 17)
+draft = true
 +++
 
 There are a few important questions that popped up while writing many

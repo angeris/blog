@@ -1,5 +1,5 @@
 +++
-title = "Index"
+title = "Longest path search"
 notitle = nothing
 +++
 
