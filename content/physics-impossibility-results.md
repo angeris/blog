@@ -143,9 +143,9 @@ but any point in the interval $[L, U]$ is a convex combination of $L$ or $U$! So
 
 This solves our problem: since the objective is separable, then we only need to consider each component of $\theta$, and, because it's concave, then we know that an optimal $\theta_i$ is one of either $\theta^\mathrm{min}_i$ or $\theta^\mathrm{max}_i$. Replacing the complicated $\inf$ with this (much simpler) $\min$ gives the analytic solution for $g$:
 $$
-\begin{multline}
-g(\nu) = \sum_i \min\bigg\{-\frac12 (\hat z_i - a_i^T\nu + \theta_i^\mathrm{min} \nu_i)^2, - \frac12 (\hat z_i - a_i^T\nu + \theta_i^\mathrm{max} \nu_i)^2\bigg\} \\- \nu^Tb + \frac12\|\hat z\|_2^2,
-\end{multline}
+\begin{aligned}
+g(\nu) = \sum_i \min\bigg\{-\frac12 (\hat z_i - a_i^T\nu + \theta_i^\mathrm{min} \nu_i)^2, &- \frac12 (\hat z_i - a_i^T\nu + \theta_i^\mathrm{max} \nu_i)^2\bigg\} \\&- \nu^Tb + \frac12\|\hat z\|_2^2,
+\end{aligned}
 $$
 or, writing it in the same way as the paper, by pulling out the $-1/2$ (and using $\theta^\mathrm{min} = 0$),
 $$
