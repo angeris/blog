@@ -237,14 +237,6 @@ body { counter-reset: eqnum; }
   white-space: normal;
 }
 
-.katex-display::after {
-  counter-increment: eqnum;
-  content: "(" counter(eqnum) ")";
-  position: relative;
-  float: right;
-  padding-right: 5px;
-}
-
 .nonumber .katex-display::after {
   counter-increment: nothing;
   content: "";
