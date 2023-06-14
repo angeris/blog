@@ -10,12 +10,13 @@ mintoclevel = 2
 # you might not want. Indicate directories by ending the name with a `/`.
 # Base files such as LICENSE.md and README.md are ignored by default.
 ignore = ["node_modules/"]
+prepath = "blog/"
 
 # RSS (the website_{title, descr, url} must be defined to get RSS)
 generate_rss = true
 website_title = "Longest Path Search"
 website_descr = "Because finding the shortest path is boring (and not NP-hard)."
-website_url = "https://angeris.github.io/blog/"
+website_url = "https://angeris.github.io/"
 rss_full_content = true
 +++
 <!--website_url   = "https://guille.site/"-->
