@@ -22,6 +22,12 @@ function hfun_page_titles(; dirname="content")
 
     getdate(p) = pagevar(p, "date")
 
+    for (p, d) in zip(pages, getdate.(pages))
+        if isnothing(d)
+            @error "Page $(pagevar(p, "title")) has no date"
+        end
+    end
+
     sort!(pages, by=getdate, rev=true)
     write(c, "<ul class=\"post-list\">")
 
