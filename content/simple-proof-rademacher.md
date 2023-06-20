@@ -121,18 +121,18 @@ then we have
 \[
 \E[|X|] \ge a \frac{(\E[X^2] - a^2)^2}{\E[X^4]}.
 \]
-Parametrizing $a$ by $a = \alpha\E[X^2]$ for some $\alpha \ge 0$, we then have
+Parametrizing $a$ by $a = \alpha\sqrt{\E[X^2]}$ for some $\alpha \ge 0$, we then have
 \[
-\E[|X|] \ge \alpha(1-\alpha^2)^2\frac{\E[X^2]^2}{\E[X^4]}.
+\E[|X|] \ge \alpha(1-\alpha^2)^2\frac{\E[X^2]^{3/2}}{\E[X^4]}.
 \]
 The right-hand-side is maximized at $\alpha = 1/3$, which gives the following
 lower bound
 \[
-\E[|X|] \ge \alpha(1-\alpha^2)^2\frac{\E[X^2]^3}{\E[X^4]} = \frac{4}{27}\frac{\E[X^2]^3}{\E[X^4]}.
+\E[|X|] \ge \frac{4}{27}\frac{\E[X^2]^{3/2}}{\E[X^4]}.
 \]
 And, finally, using the fact that $\E[X^2] = n$ and $\E[X^4] = n^2$, we get the final result:
 \[
-\E[|X|] \ge \frac{4}{27}n \ge \Omega(n),
+\E[|X|] \ge \frac{4}{27}\sqrt{n} \ge \Omega(\sqrt{n}),
 \]
 as required, with no need for combinatorics! Of course the factor of $4/27
 \approx .15$ is rather weak compared to the factor of $\sqrt{2/\pi} \approx
