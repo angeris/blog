@@ -82,7 +82,7 @@ This suggests that we need a little more control over the tails of $|X|$, which
 gets us to...
 
 ## Attempt #2 (and solution)
-Another easy quantity to compute in this case is $\E[X^4]$. (And, indeed, any
+Another easy quantity to compute in this case is $\E[X^4]$. (And, really, any
 even power of $X$ is easy. On the other hand, since $X$ has a distribution that
 is symmetric around 0, all odd moments are 0.) Splitting the sum out into each
 of the possible quartic terms, we find that any term containing an odd power of
