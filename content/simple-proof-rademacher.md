@@ -1,67 +1,152 @@
 +++
-title = "PID as least squares"
-date = Date(2017, 9, 13)
+title = "A non-counting lower bound for the expected distance of a simple random walk"
+date = Date(2023, 6, 20)
 +++
 
-I want to say this is a folk theorem (borrowing terminology from game theory) in that everyone who does optimal control theory knows about this stuff, probably,[^people] but I haven't really seen it stated explicitly anywhere. If anyone does indeed work on optimal control, I'd love to know your thoughts! (even if you don't, I'd still like to know your thoughts on it!)
+It's been a while since I've updated the blog (likely due to the fact that I've been struggling to get it to work with Github pages...).
+Anyways, it'll, at some point, be migrated over, but for now this will have to do.
 
-For context, I'm currently leading a team on path planning for fixed-wing UAVs (I still don't really know who put me in charge of this stuff, or *why* for that matter---overall, it seems pretty terrifying for them, but kinda fun for me), and I wondered why I hadn't actually seen least squares in many papers on fixed-wing control. I still haven't gotten an answer to the question, to be honest, but I did waste some potentially productive time showing that PID $\subset$ LS. Some quick definitions: let $u(t)$ be our control input and allow $\varepsilon(t)$ to be the error of the function (that is, $\varepsilon(t) = x(t) - \hat x(t)$ where $x(t)$ is the desired position and $\hat x(t)$ is the current position), then a PID controller is defined as
+This post will focus on a particular, nearly silly, proof of a lower bound for the distance of an unbiased random walk, defined as
+\[
+X = \sum_{i=1}^n X_i,
+\]
+where $X_i \sim \{\pm 1\}$, uniformly. The quantity we want to find a lower bound to is
+\[
+\E[|X|],
+\]
+as $n$ is large. We know from a basic, if somewhat annoying, counting argument that
+\[
+\mathbf{E}[|X|] \sim \sqrt{\frac{2}{\pi}}\sqrt{n},
+\]
+when $n \gg 1$. In general, we're interested in bounds of the form
+\[
+\E[|X|] \ge \Omega(\sqrt{n}).
+\]
+Bounds like these are applicable in a number of important lower bounds for online convex optimization
+(see, *e.g.*, Hazan's [lovely overview](https://arxiv.org/abs/1909.05207), section 3.2) though we won't
+be talking too much about the applications on this one.
 
-$$
-u(t) = K_p \varepsilon(t) + K_i \int_0^t d\tau\,\varepsilon(\tau) + K_d\frac{\partial\varepsilon(t)}{\partial t}
-$$
+Additionally, since $\E[X^2] = n$ (which follows by expanding and using the fact that $X_i$ are independent with mean zero)
+then
+\[
+    \E[|X|] \le \sqrt{\E[X^2]} = \sqrt{n},
+\]
+so we know that this bound is tight up to a constant. The first inequality here follows from an application
+of Jensen's inequality to the square root function (which is concave).
+
+## Why a non-counting proof?
+
+Mostly because I'm bad at counting and always end up with a hilarious number of
+errors. Plus, this proof is easily generalizable to a number of other similar
+results!
+
+## Proof idea
+One simple method for lower-bounding the expectation of a variable like $|X|$ is to note that
+$|X|$ is nonnegative, so we have the following 'silly' bound
+\[
+
+\E[|X|] \ge \E[a\ones_{|X| \ge a}] = a \Pr(|X| \ge a),
+\]
+for any $a \ge 0$, where $\ones_{|X| \ge a}$ is the indicator function for the
+event $|X| \ge a$, that is 1 if $|X| \ge a$ and zero otherwise. (The bound
+follows from the fact that $|X| \ge a \ones_{|X|\ge a}$ pointwise.) Maximizing
+over $a$, assuming we have a somewhat tight lower bound over the probability
+that $|X| \ge a$, then this approach might give us a reasonable lower bound.
+
+In a very general sense, we want to show that $|X|$ is 'anticoncentrated'; *i.e.*, it is reasonably
+'spread out', which would indicate that its expectation cannot be too small, since it is nonnegative.
 
 
-where each of the $K_{(\cdot)}$ variables are a gain or proportionality constant. Say $K_p$ is the proportional constant (i.e. how much of $u$ is proportional to the current error), $K_i$ is the integral proportionality constant (i.e. how much of $u$ is proportional to the integral of the error), and $K_d$ is the derivative constant (i.e. ditto). For a more thorough explanation for what each of these means intuitively, see the [PID wikipedia page](https://en.wikipedia.org/wiki/PID_controller).
+## Attempt #1
+The first idea (or, at least, my first idea) would be to note that, since $\E[X^2]$ is on the order of
+$n$, then maybe we can use this fact to construct a bound for $\E[|X|]$ which 'should be' on the order
+of $\sqrt{n}$ assuming some niceness conditions, for example, that $|X| \le n$ is a bounded variable.
 
-Anyways, I'll likely make a separate (more introductory) post to least squares but, for now, I define an LS problem to be an optimization problem of the form, for arbitrary but given $A, b, \lambda_j>0, C, d$
+Unfortunately, just these two simple facts are not enough to prove the claim! We can construct a nonnegative
+random variable $Y\ge 0$ such that its second moment is $\E[Y^2] = n$, it is bounded by $Y \le n$, yet $\E[Y] = 1$.
+In other words, we wish to construct a variable that is very concentrated around $0$, with 'sharp' peaks at larger
+values.
 
-$$
-\begin{aligned}
-& \underset{u}{\text{minimize}}
-& & \sum_j \lambda_j \lVert A_j u - b_j\lVert_2^2 \\
-& \text{subject to}
-& & Cu = d
-\end{aligned}
-$$
+Of course, the simplest example would be to take $Y = n$ with probability $1/n$
+and $Y=0$ with probability $1-1/n$. Clearly, this variable is bounded, and has
+$n$ as its second moment. On the other hand,
+\[
+\E[Y] = (1/n)n + (1-1/n)0 = 1,
+\]
+which means that the best bound we can hope for, using just these conditions
+(nonnegativity, boundedness, and second moment bound) on a variable, is a
+constant. (Indeed, applying a basic argument, we find that this is the smallest
+expectation possible.)
 
-where the $\lVert \cdot \lVert_2^2$ norm is the usual $\ell_2$-norm (i.e. $\lVert x \lVert_2^2 = \sum_i x_i^2$). It's notable that this problem has an analytical solution (not that you'd necessarily *want* the analytical solution for most big-enough scenarios) and is extremely well-behaved for most optimization methods.[^politifact] Now, consider the following objective function with trivial equality constraints (e.g. $0=0$, for convenience, by setting $C = (0,0,…,0)^T,\, d = 0$) and $K$ being some proportionality constant (I'll make the connection to the original $K_{(\cdot)}$ variables above, soon):
+This suggests that we need a little more control over the tails of $|X|$, which
+gets us to...
 
-$$
-E(u, \varepsilon) = \lambda_p \left\lVert u - K\varepsilon (t)\right\lVert_2^2 + \lambda_i \left\lVert u - K\int d\tau\, \varepsilon(t)\right\lVert_2^2 + \lambda_d\left\lVert u - K \frac{\partial\varepsilon(t)}{\partial t}\right\lVert_2^2
-$$
+## Attempt #2 (and solution)
+Another easy quantity to compute in this case is $\E[X^4]$. (And, indeed, any
+even power of $X$ is easy. On the other hand, since $X$ has a distribution that
+is symmetric around 0, all odd moments are 0.) Splitting the sum out into each
+of the possible quartic terms, we find that any term containing an odd power of
+$X_i$ will be zero in expectation as the $X_i$ are independent. So, we find
+\[
+\E[X^4] = \sum_{i} \E[X_i^4] + \sum_{i\ne j} \E[X_i^2X_j^2] = n + n(n-1) = n^2.
+\]
+This quantity will come in handy soon.
 
-Minimizing this function by setting its gradient to zero (this is necessary and sufficient by differentiability, convexity, and coerciveness [that is, $E(u) \to \infty$, whenever $\lVert u\lVert \to \infty$]) gives the solution[^generalization]
+We can, on the other hand, split up the expectation of $X^2$ in a variety of ways.
+One is particularly handy to get a tail *lower bound* like the one we wanted in our
+proof idea (above):
+\[
+\E[X^2] = \E[X^2\ones_{|X| < a}] + \E[X^2\ones_{|X| \ge a}] \le a^2 + \E[X^2\ones_{|X| \ge a}].
+\]
+The latter term can be upper bounded using Cauchy--Schwarz,[^csproof]
+\[
+\E[X^2\ones_{|X| \ge a}] \le \sqrt{\E[X^4]}\sqrt{\E[\ones_{|X| \ge a}]}.
+\]
+(Since $\ones_{|X| \ge a}^2 = \ones_{|X| \ge a}$.) And, since $\E[\ones_{|X| \ge a}] = \Pr(|X| \ge a)$,
+we finally have:
+\[
+\E[X^2] \le a^2 + \sqrt{\E[X^4]}\sqrt{\Pr(|X| \ge a)}.
+\]
+Rearranging gives us the desired lower bound,
+\[
+\Pr(|X| \ge a) \ge \frac{(\E[X^2] - a^2)^2}{\E[X^4]}.
+\]
+(This is a Paley--Zygmund-style bound, except over $X^2$ rather than nonnegative $X$.)
 
-$$
-\nabla E(u, \varepsilon) = \lambda_p \left(u - K\varepsilon (t)\right) + \lambda_i \left( u - K\int d\tau\, \varepsilon(t)\right) + \lambda_d\left(u - K \frac{\partial\varepsilon(t)}{\partial t}\right) = 0,
-$$
+Now, since we know that
+\[
+\E[|X|] \ge a \Pr(|X| \ge a),
+\]
+then we have
+\[
+\E[|X|] \ge a \frac{(\E[X^2] - a^2)^2}{\E[X^4]}.
+\]
+Parametrizing $a$ by $a = \alpha\E[X^2]$ for some $\alpha \ge 0$, we then have
+\[
+\E[|X|] \ge \alpha(1-\alpha^2)^2\frac{\E[X^2]^2}{\E[X^4]}.
+\]
+The right-hand-side is maximized at $\alpha = 1/3$, which gives the following
+lower bound
+\[
+\E[|X|] \ge \alpha(1-\alpha^2)^2\frac{\E[X^2]^3}{\E[X^4]} = \frac{4}{27}\frac{\E[X^2]^3}{\E[X^4]}.
+\]
+And, finally, using the fact that $\E[X^2] = n$ and $\E[X^4] = n^2$, we get the final result:
+\[
+\E[|X|] \ge \frac{4}{27}n \ge \Omega(n),
+\]
+as required, with no need for combinatorics! Of course the factor of $4/27
+\approx .15$ is rather weak compared to the factor of $\sqrt{2/\pi} \approx
+.80$, but this is ok for our purposes.
 
-or, after rearranging
+## General extensions
+Of course, similar constructions also hold rather nicely for things like
+uniform $[-1, 1]$ variables, or Normally distributed, mean zero variables. Any
+variable for which the second and fourth moment can be easily computed allows
+us to compute a lower bound on this expectation. (Expectations of the absolute
+value of the sums of independently drawn versions of these variables could be
+similarly computed.) These have no obvious combinatorial analogue, so those
+techinques cannot be easily generalized, whereas this bound applies immediately.
 
-$$
-u = \frac{K}{\lambda_p + \lambda_i + \lambda_d}\left(\lambda_p \varepsilon(t) + \lambda_i\int d\tau\, \varepsilon(t) + \lambda_d \frac{\partial\varepsilon(t)}{\partial t}\right),
-$$
 
-which allows the following correspondence between the original PID and the LS problem to be
 
-$$
-\begin{aligned}
-K &= K_p + K_i + K_d\\
-\lambda_p &= \frac{K_p}{K}\\
-\lambda_i &= \frac{K_i}{K}\\
-\lambda_d &= \frac{K_d}{K}.
-\end{aligned}
-$$
-
-So, now we've given the condition we wanted and we're done!
-
-Anyways, you may ask, why is this useful? I guess it kind of extends the framework to add constraints from your control surface, or secondary objectives. To be completely honest, though? I have no idea.
-
-<!-- [^gametheory]: See, for example, (https://en.wikipedia.org/wiki/Folk_theorem_(game_theory)). -->
-
-[^people]: I mostly know people who do hardware work, etc. on UAVs, so I don't really have a representative sample of control people.
-
-[^politifact]: **PolitiFact**: *Mostly true.* I mean the usual cases (e.g. first-order methods, second-order methods, or conjugate gradient/quasi-newton methods). It's horribly behaved in conic program (SOCP) solvers.
-
-[^generalization]: There's an immediate generalization here: any control of the form $\sum_i \gamma_i\left(u - C_i\right), \gamma_i>0$ can be immediately written as the minimizer to an energy function $E(u) = \sum_i \eta_i\lVert u - \xi C_i\lVert^2_2$. We can actually go further and note there's yet another generalization to any control of the form $\sum_i \left(S_iu - C_i\right)$, where each $S_i$ is symmetric and (strictly) positive definite. This is true as each $S_i$ has an inverse and a 'square root' matrix (e.g. let, $S$ be some positive-definite matrix. We know $SV =  V\Lambda$ for $V^TV = VV^T = I$ and diagonal $\Lambda > 0$, thus $S^{1/2}=V\Lambda^{1/2}V^T$), such that the energy function is written in terms of these. Though it's somewhat enlightening (I guess), I leave the derivation as an exercise for the reader.
+[^csproof]: Possibly the most elegant proof of Cauchy--Schwarz I know is based on minimizing a quadratic, and goes a little like this. Note that $\E[(X - tY)^2]\ge 0$ for any $t \in \reals$. (That this expectation exists can be shown for any $t$ assuming both $X$ and $Y$ have finite second moment. If not, the inequality is also trivial.) Expanding gives $\E[X^2] - 2t\E[XY] + t^2\E[Y^2] \ge 0$. Minimizing the left hand side over $t$ then shows that $t^\star = \E[XY]/\E[Y^2]$, which gives \[ \E[X^2] - \frac{\E[XY]^2}{\E[Y^2]} \ge 0.\] Multiplying both sides by $\E[Y^2]$ gives the final result.

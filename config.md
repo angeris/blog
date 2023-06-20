@@ -28,3 +28,6 @@ Add here global latex commands to use throughout your pages.
 \newcommand{\reals}{\mathbf{R}}
 \newcommand{\scal}[1]{\langle #1 \rangle}
 \newcommand{\diag}{\mathbf{diag}}
+\newcommand{\E}{\mathbf{E}}
+\newcommand{\ones}{\mathbf{1}}
+\newcommand{\Pr}{\mathbf{Pr}}
