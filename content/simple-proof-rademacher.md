@@ -121,21 +121,21 @@ then we have
 \[
 \E[|X|] \ge a \frac{(\E[X^2] - a^2)^2}{\E[X^4]}.
 \]
-Parametrizing $a$ by $a = \alpha\sqrt{\E[X^2]}$ for some $\alpha \ge 0$, we then have
+Parametrizing $a$ by $a = \alpha\sqrt{\E[X^2]}$ for some $0 \le \alpha \le 1$, we then have
 \[
 \E[|X|] \ge \alpha(1-\alpha^2)^2\frac{\E[X^2]^{3/2}}{\E[X^4]}.
 \]
-The right-hand-side is maximized at $\alpha = 1/3$, which gives the following
+The right-hand-side is maximized at $\alpha = 1/\sqrt{5}$, which gives the following
 lower bound
 \[
-\E[|X|] \ge \frac{4}{27}\frac{\E[X^2]^{3/2}}{\E[X^4]}.
+\E[|X|] \ge \frac{16}{25\sqrt{5}}\frac{\E[X^2]^{3/2}}{\E[X^4]}.
 \]
 And, finally, using the fact that $\E[X^2] = n$ and $\E[X^4] = n^2$, we get the final result:
 \[
-\E[|X|] \ge \frac{4}{27}\sqrt{n} \ge \Omega(\sqrt{n}),
+\E[|X|] \ge \frac{16}{25\sqrt{5}}\sqrt{n} \ge \Omega(\sqrt{n}),
 \]
-as required, with no need for combinatorics! Of course the factor of $4/27
-\approx .15$ is rather weak compared to the factor of $\sqrt{2/\pi} \approx
+as required, with no need for combinatorics! Of course the factor of $16/(25\sqrt{5})
+\approx .29$ is rather weak compared to the factor of $\sqrt{2/\pi} \approx
 .80$, but this is ok for our purposes.
 
 ## General extensions
