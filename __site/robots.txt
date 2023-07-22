@@ -1,4 +1,0 @@
-Sitemap: https://angeris.github.io/sitemap.xml
-
-User-agent: *
-Disallow:
