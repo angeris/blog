@@ -9,8 +9,8 @@ function hfun_page_titles(; dirname="content")
     pages = filter(!isdir, joinpath.(dirname, readdir(dirname)))
 
     getdate(p) = pagevar(p, "date")
-
     sort!(pages, by=getdate, rev=true)
+
     write(c, "<ul class=\"post-list\">")
 
     for p in pages
