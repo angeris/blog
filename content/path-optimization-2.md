@@ -147,10 +147,6 @@ As before, this code (with more details and implementation) can be found in the 
 
 [^momentum]: Of course, there are many reasons why we'll want momentum, but those will come soon.
 
-[^oscillations]: Consider $V(x) = 0$, with some initial condition, $v_0 > 0$, say, then we'll have
-$$
-v_t = -k v_{t-1}
-$$
-for some $k = \mu\gamma - 1>0$. Solving this yields $v_{t} = (-1)^tk^t v_{0}$. This is weird, because it means that our velocity will change directions every iteration even though there's no potential! This is definitely not expected (nor desirable) behaviour.
+[^oscillations]: Consider $V(x) = 0$, with some initial condition, $v_0 > 0$, say, then we'll have $$ v_t = -k v_{t-1} $$ for some $k = \mu\gamma - 1>0$. Solving this yields $v_{t} = (-1)^tk^t v_{0}$. This is weird, because it means that our velocity will change directions every iteration even though there's no potential! This is definitely not expected (nor desirable) behaviour.
 
 [^approaches]: In some sense. Say: in the square error, or something of the like. This can be made entirely rigorous, but I choose not to do it here since it's not terribly essential.

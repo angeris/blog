@@ -3,6 +3,12 @@ function hfun_m1fill(vname)
   return pagevar("index", var)
 end
 
+function hfun_rssfun()
+    d = locvar(:date)
+    Franklin.set_var!(Franklin.LOCAL_VARS, "rss_pubdate", d)
+    Franklin.set_var!(Franklin.LOCAL_VARS, "rss_description", "Another blogpost.")
+end
+
 function hfun_page_titles(; dirname="content")
     c = IOBuffer()
 
