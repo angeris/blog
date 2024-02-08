@@ -54,7 +54,7 @@
 <h2 id="a_simple_strategy">A simple strategy</h2>
 <p>The simplest strategy that &quot;seems to have the right behavior&quot; is probably something like gradient descent: at round \(t\), use the gradient of the function at round \(t-1\) &#40;which we didn&#39;t know until we played \(x_{t-1}\), since the adversary chose it after&#33;&#41; and update slightly in that direction. Written out, this is</p>
 <a id="eqogd" class="anchor"></a>\[
-    x_t = x_{t-1} + \eta\nabla f_t(x_{t-1}),
+    x_t = x_{t-1} - \eta\nabla f_t(x_{t-1}),
 \]
 <p>where \(\eta > 0\) is some parameter we will set soon. &#40;Keep this in mind as this is the definition of \(x_t\) we will use throughout.&#41; Note that we can write \(x_t\) purely in terms of the previously-observed gradients, since</p>
 \[
