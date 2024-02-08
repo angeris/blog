@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:media="http://search.yahoo.com/mrss/"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:georss="http://www.georss.org/georss">
+
+  <channel>
+    <title>
+      <![CDATA[  {{fd2rss website_title}}  ]]>
+    </title>
+    <link> {{website_url}} </link>
+    <description>
+      <![CDATA[  {{fd2rss website_description}}  ]]>
+    </description>
+    <atom:link
+      href="{{fd_rss_feed_url}}"
+      rel="self"
+      type="application/rss+xml" />
+
+
+<item>
+  <title>
+    <![CDATA[  Markov processes and the second law  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/second-law-markov/index.html </link>
+  <guid> https://angeris.github.io/blog/content/second-law-markov/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p><em>Note:</em> This is another one of those &quot;quick&quot; posts about a topic I&#39;ve found to be fascinating, but which is almost never discussed.</p>
+<p>Physics has this nice little law called the <a href="https://en.wikipedia.org/wiki/Second_law_of_thermodynamics">second law of thermodynamics</a>, which governs every physical thermodynamical system in question. The second law is usually phrased as the nice quote &quot;everything tends to disorder,&quot; or some other variation thereof which sounds intuitive but is as opaque as a concrete wall when applied in practice.</p>
+<p>As usual, I won&#39;t really touch this or other similar discussions with a 10 foot pole &#40;though <a href="https://plato.stanford.edu/entries/time-thermo/">here</a> is a good place to start&#41;, but I&#39;ll be giving some thoughts on a similar mathematical principle which arises from statistical systems.</p>
+<h2 id="markov_chains">Markov chains</h2>
+<p>Since this is a short post, I won&#39;t be describing <a href="https://en.wikipedia.org/wiki/Markov_chain">Markov chains</a> in detail, but as a refresher, a Markov chain &#40;or Markov process&#41; is a process in which the next state of the process depends only on the current state. In other words, it&#39;s a little like the game <a href="https://en.wikipedia.org/wiki/Snakes_and_Ladders">Snakes and Ladders</a>, where your next position depends only on where you are in the current square and your next dice throw &#40;independent of it being the 1st or 5th time you&#39;ve landed on the same square&#41;.</p>
+<p>In particular, we know probability of being at a new square, \(x_{t+1}\) at time \(t+1\), given that we were in square \(x_t\) at time \(t\). In other words, we know \(p(X_{t+1}=x~|~X_{t}=x')\). Similarly, if we weren&#39;t sure of our position at time \(t\), but rather we have a probability distribution over positions, say \(p(X_t = x)\) &#40;which I will call \(p_t(x)\), for convenience&#41;, then the probability of being at position \(x\) at time \(t+1\) given our belief about possible positions, \(x'\) at time \(t\) is</p>
+\[
+p_{t+1}(x) = \sum_{x'} p(X_{t+1}=x~|~X_{t}=x')p_t(x').\tag{1}
+\]
+<p>In other words, we just multiply these two probabilities and sum over all possible states \(x'\) at time \(t\). The defining trait of &#40;stationary&#41; Markov processes is that \(p(X_{t+1}=x~|~X_{t}=x')\), which I will call \(K(x, x')\) from now on, is the <em>same</em> for all \(t\), and equation &#40;1&#41;, now written as</p>
+\[
+p_{t+1}(x) = \sum_{x'} K(x, x')p_t(x),
+\]
+<p>holds for any \(t\).</p>
+<p>It&#39;s probably not hard to believe that Markov chains are used <a href="https://www.cs.cmu.edu/~katef/DeepRLControlCourse/lectures/lecture2_mdps.pdf">absolutely</a> <a href="https://twitter.com/captain_markov?lang&#61;en">everywhere</a>, since they make for mathematically simple, but surprisingly powerful models of,  well, everything.</p>
+<p>This is all I will mention about Markov chains, in general. If you&#39;d like a bit of a deeper dive, <a href="http://setosa.io/ev/markov-chains/">this blog post</a> is a beautiful &#40;and interactive&#33;&#41; reference. I highly recommend it.</p>
+<h2 id="a_variation_on_a_theme">A variation on a theme</h2>
+<p>Let \(p_t\) be the distribution of a process at time \(t\), then the second law says that &#40;and I will use statistics notation, rather than physics notation, from here on out&#33;&#41;,</p>
+\[
+H(p_t) \equiv -\sum_x p_t(x) \log p_t(x),
+\]
+<p>is non-decreasing as time, \(t\), increases. Note that I&#39;ll be dealing with discrete time and space here, but all of these statements with some modifications hold for continuous processes. Anyways, more generally, we can write</p>
+\[
+H(p_{t+1}) \ge H(p_t),
+\]
+<p>but it turns out this law, as stated, doesn&#39;t quite hold for many Markov processes. It does, on the other hand, hold for a set of processes where the transition probabilities are symmetric &#40;more generally, this holds iff the transitions are doubly-stochastic. <a href="https://pdfs.semanticscholar.org/332c/1c7bab1a9a7a43d34d5a1784cf2454e0a7f1.pdf">Cover</a> has a slick, few-line proof of this which relies on some properties of the KL-divergence&#41;.</p>
+<p>In this case, the probability of going from state \(A\) to state \(B\) is the same as the probability of going from state \(B\) to state \(A\). Writing this out mathematically, it says:</p>
+\[
+K(x, x') = K(x', x).
+\]
+<p>I should note that this is a <em>very</em> strong condition, but it can be quite useful in giving a simple proof of the above law. To prove this, first note that the KL-divergence is nonnegative, since the negative log is convex, thus by <a href="https://en.wikipedia.org/wiki/Jensen&#39;s_inequality">Jensen&#39;s inequality</a> &#40;this is the same proof as the <a href="https://angeris.github.io/blog/ml-information-bounds.html">previous post</a>&#41;:</p>
+\[
+\begin{aligned}
+D(p_t\lVert p_{t'})&=-\sum_x p_t(x) \log \frac{p_{t'}(x)}{p_t(x)} \\
+&\ge -\log\left(\sum_x p_t(x)\frac{p_{t'}(x)}{p_t(x)}\right) \\
+&= -\log\left(\sum_x p_{t'}(x)\right) \\
+& = -\log 1 \\
+&= 0,
+\end{aligned}
+\]
+<p>since \(p_{t'}, p_t\) are probability distributions &#40;i.e., nonnegative and sum to one&#41;.</p>
+<p>Here is the magical trick to proving the above. Note that</p>
+\[
+D(p_t \lVert p_{t+2}) \ge 0,
+\]
+<p>so</p>
+\[
+-\sum_x p_t(x) \log \frac{p_{t+2}(x)}{p_t(x)} \ge 0,
+\]
+<p>which means</p>
+\[
+-\sum_x p_t(x) \log p_{t+2}(x) \ge -\sum_x p_t(x) \log p_t(x).
+\]
+<p>But, by definition, we have that</p>
+\[
+p_{t+2}(x) = \sum_{x'}K(x, x')p_{t+1}(x'),
+\]
+<p>so</p>
+\[
+-\sum_x p_t(x) \log \left(\sum_{x'} K(x, x')p_{t+1}(x')\right) \ge -\sum_x p_t(x) \log p_t(x),
+\]
+<p>but, by Jensen&#39;s inequality &#40;again&#33;&#41; on the left hand side we get,</p>
+\[
+-\sum_x p_t(x) \log \left(\sum_{x'} K(x, x')p_{t+1}(x')\right) \le -\sum_{x, x'} p_t(x)K(x, x') \log p_{t+1}(x').
+\]
+<p>Since we know \(K(x, x') = K(x', x)\), then we immediately have that</p>
+\[
+\sum_x p_t(x)K(x, x') = p_{t+1}(x'),
+\]
+<p>so, putting it all together</p>
+\[
+\begin{aligned}
+H(p_{t+1}) &= -\sum_{x'} p_{t+1}(x') \log p_{t+1}(x') \\
+&= -\sum_{x, x'} p_t(x)K(x, x') \log p_{t+1}(x')\\
+&\ge -\sum_x p_t(x) \log p_t(x) \\
+&= H(p_t),
+\end{aligned}
+\]
+<p>which is what we wished to prove.</p>
+<h2 id="more_general_markov_processes">More general Markov processes</h2>
+<p>So, while it turns out this law doesn&#39;t hold for general Markov processes, a very similar law <em>does</em> hold. If a Markov process has a stationary distribution, \(p\), then:</p>
+\[
+D(p_{t+1}\lVert p) \le D(p_t \lVert p),
+\]
+<p>so, as the Markov chain continues evolving, the KL divergence between the current distribution and the equilibrium distribution <em>never decreases</em>.</p>
+<p>In fact, more generally, for <em>any</em> two initial probability distributions \(p_0, q_0\), we have that</p>
+\[
+D(p_{t+1} \lVert q_{t+1}) \le D(p_{t} \lVert q_{t}),
+\]
+<p>so any two distributions undergoing the same &#40;Markovian&#41; dynamics never decrease in KL-divergence&#33; Even if the Markov process does <em>not</em> have a unique stationary distribution, there is still a type of second law which holds, in a very general sense.</p>
+<p>As before, <a href="https://pdfs.semanticscholar.org/332c/1c7bab1a9a7a43d34d5a1784cf2454e0a7f1.pdf">Cover</a> has a fantastic, slick proof of the above, which I highly recommend you read&#33;</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Thu, 13 Sep 2018 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+</channel></rss>

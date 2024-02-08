@@ -1,0 +1,2204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:media="http://search.yahoo.com/mrss/"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:georss="http://www.georss.org/georss">
+
+  <channel>
+    <title>
+      <![CDATA[  Longest Path Search  ]]>
+    </title>
+    <link> https://angeris.github.io/blog/ </link>
+    <description>
+      <![CDATA[  Because finding the shortest path is boring &#40;and not NP-hard&#41;.  ]]>
+    </description>
+    <atom:link
+      href="https://angeris.github.io/blog/feed.xml"
+      rel="self"
+      type="application/rss+xml" />
+
+
+<item>
+  <title>
+    <![CDATA[  Online gradient descent has low regret: a one-ish-liner  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/direct-oco-proof/index.html </link>
+  <guid> https://angeris.github.io/blog/content/direct-oco-proof/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>This post is a bit silly in that this is an obviously well-known result, but I&#39;ve never seen a direct proof of this that did not at least introduce some additional notation. This proof was particularly enlightening to me in understanding &#39;why does OCO work&#39;, at least, much more so than the standard &quot;follow the regularized leader&quot; proofs &#40;such as those found <a href="https://www.nowpublishers.com/article/Details/MAL-018">here</a>&#41; or more &#39;direct&#39;, but magical proofs, such as the one found <a href="https://people.eecs.berkeley.edu/~brecht/cs294docs/week1/03.Zinkevich.pdf">here</a>. If you&#39;re familiar with OCO already, you can scroll directly down to the almost-two-liner proof.</p>
+<h2 id="online_convex_optimization">Online convex optimization</h2>
+<p>The main setting of online convex optimization is as follows. We have two players, us, and an adversary. The game proceeds in \(T\) rounds. At each round \(t\) we have to choose a <em>move</em> \(x_t \in \mathbf{R}^n\), and the adversary, <em>after observing our move</em>, gets to then choose some &#40;convex&#41; loss \(f_t: \mathbf{R}^n \to
+\mathbf{R}\) such that we incur a penalty \(f_t(x_t)\) for having played move \(x_t\).</p>
+<p>After this game is over, we then compare our score, which is the sum of all of  the losses over the \(T\) rounds, to the best possible <em>fixed</em> strategy, which we call \(x^\star \in \mathbf{R}^n\):</p>
+\[
+    R = \sum_{t=1}^T f_t(x_t) - \sum_{t=1}^T f_t(x^\star).
+\]
+<p>This \(R\) is called the <strong>regret</strong> and the best possible fixed strategy, \(x^\star\), is, of course, the one that minimizes the sum of all losses:</p>
+\[
+    x^\star \in \argmin_x \left(\sum_{t=1}^T f_t(x)\right),
+\]
+<p>had we known the losses \(f_t\) in advance.</p>
+<p>The natural question is: just how small can \(R\) be? Of course, we need <em>some</em> conditions on \(f_t\) and the optimal fixed strategy, \(x^\star\), otherwise the adversary can just grow the function to arbitrary amounts. The simplest conditions, and the one we will use here, is that &#40;a&#41; the optimal price \(p^\star\) always has a bound \(\|p^\star\| \le M\), and &#40;b&#41; that the functions \(f_t\) are \(L\)-Lipschitz: if \(f_t\) are differentiable, then this is saying that</p>
+\[
+    \|\nabla f_t(y)\| \le L
+\]
+<p>for any \(y \in \mathbf{R}^n\). &#40;We can relax this condition slightly, but the idea will be the same.&#41; In both cases, we write \(\|\cdot\|\) for the usual Euclidean norm, and I&#39;ll do this for the rest of the post.</p>
+<h2 id="a_simple_strategy">A simple strategy</h2>
+<p>The simplest strategy that &quot;seems to have the right behavior&quot; is probably something like gradient descent: at round \(t\), use the gradient of the function at round \(t-1\) &#40;which we didn&#39;t know until we played \(x_{t-1}\), since the adversary chose it after&#33;&#41; and update slightly in that direction. Written out, this is</p>
+<a id="eqogd" class="anchor"></a>\[
+    x_t = x_{t-1} + \eta\nabla f_t(x_{t-1}),
+\]
+<p>where \(\eta > 0\) is some parameter we will set soon. &#40;Keep this in mind as this is the definition of \(x_t\) we will use throughout.&#41; Note that we can write \(x_t\) purely in terms of the previously-observed gradients, since</p>
+\[
+x_t = -\eta \sum_{\tau=1}^{t-1} \nabla f_\tau(x_\tau).
+\]
+<p>&#40;We will use this later as well&#33;&#41;</p>
+<p>This silly strategy will turn out to be extremely useful in the future. Even more interesting is that the strategy only depends on the gradient at \(x_{t-1}\) and no other information&#33; This setting actually comes up in practice &#40;for example in <a href="https://arxiv.org/pdf/2208.07919.pdf">blockchain resource pricing</a>, where you have to set a price before you get to observe the market&#39;s reaction&#41; and can be used to analyze the performance of certain algorithms against potential adversaries. &#40;We are writing a paper on this particular topic of OCO applied to resource pricing using the above model, which I&#39;ll link here once we post it.&#41;</p>
+<h2 id="on_the_regret_r">On the regret \(R\)</h2>
+<p>At first glance, this problem feels quite difficult&#33; I mean, look: the adversary can choose <em>any</em> functions \(f_t\) in <em>any</em> way, after observing our move \(x_t\). It&#39;s almost like, given so much power, the adversary can always make the loss roughly linear in the number of rounds \(T\): each round, we may expect to lose some &#40;at least&#41; constant amount from a very adversarial choice of \(f_t\).</p>
+<p>Even the strategy above &#39;feels like&#39; it&#39;s not going to do particularly well: again the functions are chosen <em>with the knowledge of how we take our steps</em>&#33; Why can we expect to do well at all?</p>
+<p>What is surprising is, we will show that</p>
+\[
+    R \le C\sqrt{T},
+\]
+<p>where \(C > 0\) is some constant that depends on the bounds on the gradient \(L\) and the bound on the price \(M\). Alternatively, we can write this as, on average, the longer the game continues, the better we perform:</p>
+\[
+    \frac{R}{T} \le \frac{C}{\sqrt{T}}.
+\]
+<p>&#40;Again, it&#39;s worth reiterating: this is done <em>even in the presence of adversarially chosen</em> \(f_t\).&#41; Indeed, after a long enough time scale, we see that our strategy and the best fixed strategy, with complete knowledge of the future, are, on average, about the same. Algorithms where the average regret vanishes have a bit of a silly name, but I&#39;ll put it here for anthropological reasons: they are called <strong>no-regret algorithms</strong>.</p>
+<h2 id="proof">Proof</h2>
+<p>Anyways, the proof is almost silly. The first order of events is to note that, since \(f_t\) is convex, then, by definition, we have</p>
+\[
+    f_t(y) \ge f_t(x_t) + \nabla f_t(x_t)^T(y - x_t),
+\]
+<p>for any \(y \in \mathbf{R}^n\). &#40;The \(x_t\) are chosen in the same way as the previous section.&#41; This means, letting \(g_t = \nabla f_t(x_t)\),</p>
+\[
+    f_t(x_t) - f_t(y) \le g_t^T(x_t - y).
+\]
+<p>Summing this and noting it is true for any \(y\), then, certainly, it is true for the optimal strategy, \(y = x^\star\), so</p>
+\[
+    R = \sum_{t=1}^T (f_t(x_t) - f_t(x^\star)) \le \sum_{t=1}^T g_t^T(x_t - x^\star).
+\]
+<p>We will focus our attention on trying to show this last term, which we call the <strong>linear bound</strong>, is &#39;small&#39;.</p>
+<h3 id="an_inequality_for_the_linear_bound">An inequality for the linear bound</h3>
+<p>The inequality is a one-liner and follows easily from the fact that</p>
+\[
+    R \le \sum_{t=1}^T g_t^T(x_t - x^\star) = \frac{\eta}{2}\sum_{t=1}^T\left\| g_t\right\|^2 - \left\|\sqrt{\frac{\eta}{2}}\tilde g + \sqrt{\frac{2}{\eta}}x^\star\right\|^2  + \frac{2}{\eta}\|x^\star\|^2,
+\]
+<p>where \(\tilde g = \sum_{t=1}^T g_t\), using the definition of \(x_t = -\eta
+\sum_{\tau=1}^{t-1} g_\tau\). &#40;To see this, expand the right hand side and cancel terms.&#41; Finally, the middle term is nonpositive, as it is a negative square, so we get the bound</p>
+\[
+    R \le \frac{\eta}{2}\sum_{t=1}^T\left\| g_t\right\|^2  + \frac{2}{\eta}\|x^\star\|^2.
+\]
+<p>Since we know that \(\|g_t\| \le L\) and \(\|x^\star\| \le M\) by assumption, then</p>
+\[
+    R \le \frac{\eta L^2 T}{2} + \frac{2M^2}{\eta}.
+\]
+<p>Finally, choosing \(\eta = M/(2L\sqrt{T})\), which minimizes the right hand side, gives</p>
+\[
+    R \le ML\sqrt{T},
+\]
+<p>as required.</p>
+<h2 id="wait_what">Wait what?</h2>
+<p>Ok, fine, I&#39;ll explain it.</p>
+<h2 id="explanation">Explanation</h2>
+<p>From before, we can write \(x_t\) in terms of only the gradients \(g_t\):</p>
+\[
+    x_t = -\eta\sum_{\tau=1}^{t - 1} g_t,
+\]
+<p>so the first term of the linear bound can be written</p>
+\[
+    \sum_{t=1}^T g_t^Tx_t = -\eta\sum_{t=1}^T\sum_{\tau=1}^{t-1} g_t^Tg_\tau.
+\]
+<p>This last double sum should look familiar if you&#39;ve ever expanded the squared norm of a sum before, but if you have not then:</p>
+\[
+    \left\|\sum_{t=1}^T g_t\right\|^2 = \sum_{t=1}^T\left\| g_t\right\|^2 + 2\sum_{t=1}^T\sum_{\tau=1}^{t-1} g_t^Tg_\tau,
+\]
+<p>so, rearranging,</p>
+\[
+    \sum_{t=1}^T\sum_{\tau=1}^{t-1} g_t^Tg_\tau = \frac12\left(\left\|\sum_{t=1}^T g_t\right\|^2 - \sum_{t=1}^T\left\| g_t\right\|^2 \right)
+\]
+<p>Plugging this back into the linear bound, we have</p>
+\[
+    R \le \sum_{t=1}^T g_t^T(x_t - x^\star) = \frac{\eta}{2}\left(\sum_{t=1}^T\left\| g_t\right\|^2 - \left\|\sum_{t=1}^T g_t\right\|^2\right) - \sum_{t=1}^T g_t^Tx^\star.
+\]
+<p>Here comes the only interesting part of the proof. &#40;Though, honestly, it&#39;s not even that interesting.&#41; Note that we can pull a cute sleight of hand: write \(\tilde g = \sum_{t=1}^T g_t\) then, we can write the above as</p>
+\[
+    R \le \frac{\eta}{2}\sum_{t=1}^T\left\| g_t\right\|^2 - \frac{\eta}{2}\|\tilde g\|^2 - \tilde g^Tx^\star.
+\]
+<p>We can rewrite the last two terms in the following way:</p>
+\[
+    R \le \frac{\eta}{2}\sum_{t=1}^T\left\| g_t\right\|^2 - \left\|\sqrt{\frac{\eta}{2}}\tilde g + \sqrt{\frac{2}{\eta}}x^\star\right\|^2  + \frac{2}{\eta}\|x^\star\|^2.
+\]
+<p>&#40;To see this, expand the middle term&#33;&#41; This is exactly the term we found in the previous part&#33;</p>
+<h2 id="wrapping_up">Wrapping up</h2>
+<p>I mean, there isn&#39;t much interesting here and really not very much magic. The one thing this brings up is: what does a &#39;clean but general&#39; version of this proof look like? In particular, the only important part of the proof is recognizing that the interaction between \(\tilde g\) and \(x^\star\) is, in some sense, bounded by the norm of \(x^\star\) and the individual norms of \(g_t\). It feels like there should be some simple construction which allows this interaction to be bounded in a more natural way. &#40;Of course, this will play in a variety of ways with how we choose \(x_t\) based on the gradients and such.&#41;</p>
+<p>I should note that this bound is tight for any algorithm in that only the constant can be improved. &#40;In particular, it is possible to construct a stochastic adversary that always achieves at least \(R \ge CLM\sqrt{T}\) regret, for some \(C > 1/4\), no matter how \(x_t\) is chosen.&#41; Indeed, this question is deeply related to the <a href="https://angeris.github.io/blog/content/simple-proof-rademacher/">previous post on finding a lower bound for a random walk</a>, but I won&#39;t go into it here.</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Wed, 07 Feb 2024 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  An update and who knows  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/who-knows/index.html </link>
+  <guid> https://angeris.github.io/blog/content/who-knows/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>Looks like I was officially banned from Twitter for some extremely opaque reason. I guess this means I&#39;ll be writing here more.</p>
+<p>&#40;Or focusing on papers. We&#39;ll find out next.&#41;</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Sat, 22 Jul 2023 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  A non-counting lower bound for the expected distance of a simple random walk  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/simple-proof-rademacher/index.html </link>
+  <guid> https://angeris.github.io/blog/content/simple-proof-rademacher/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>It&#39;s been a while since I&#39;ve updated the blog &#40;likely due to the fact that I&#39;ve been struggling to get it to work with Github pages...&#41;. Anyways, it&#39;ll, at some point, be migrated over, but for now this will have to do.</p>
+<p>This post will focus on a particular, nearly silly, proof of a lower bound for the distance of an unbiased random walk, defined as</p>
+\[
+X = \sum_{i=1}^n X_i,
+\]
+<p>where \(X_i \sim \{\pm 1\}\), uniformly. The quantity we want to find a lower bound to is</p>
+\[
+\mathbf{E}[|X|],
+\]
+<p>as \(n\) is large. We know from a basic, if somewhat annoying, counting argument that</p>
+\[
+\mathbf{E}[|X|] \sim \sqrt{\frac{2}{\pi}}\sqrt{n},
+\]
+<p>when \(n \gg 1\). In general, we&#39;re interested in bounds of the form</p>
+\[
+\mathbf{E}[|X|] \ge \Omega(\sqrt{n}).
+\]
+<p>Bounds like these are applicable in a number of important lower bounds for online convex optimization &#40;see, <em>e.g.</em>, Hazan&#39;s <a href="https://arxiv.org/abs/1909.05207">lovely overview</a>, section 3.2&#41; though we won&#39;t be talking too much about the applications on this one.</p>
+<p>Additionally, since \(\mathbf{E}[X^2] = n\) &#40;which follows by expanding and using the fact that \(X_i\) are independent with mean zero&#41; then</p>
+\[
+    \mathbf{E}[|X|] \le \sqrt{\mathbf{E}[X^2]} = \sqrt{n},
+\]
+<p>so we know that this bound is tight up to a constant. The first inequality here follows from an application of Jensen&#39;s inequality to the square root function &#40;which is concave&#41;.</p>
+<h2 id="why_a_non-counting_proof">Why a non-counting proof?</h2>
+<p>Mostly because I&#39;m bad at counting and always end up with a hilarious number of errors. Plus, this proof is easily generalizable to a number of other similar results&#33;</p>
+<h2 id="proof_idea">Proof idea</h2>
+<p>One simple method for lower-bounding the expectation of a variable like \(|X|\) is to note that \(|X|\) is nonnegative, so we have the following &#39;silly&#39; bound</p>
+\[\mathbf{E}[|X|] \ge \mathbf{E}[a\mathbf{1}_{|X| \ge a}] = a \mathbf{Pr}(|X| \ge a),
+\]
+<p>for any \(a \ge 0\), where \(\mathbf{1}_{|X| \ge a}\) is the indicator function for the event \(|X| \ge a\), that is 1 if \(|X| \ge a\) and zero otherwise. &#40;The bound follows from the fact that \(|X| \ge a \mathbf{1}_{|X|\ge a}\) pointwise.&#41; Maximizing over \(a\), assuming we have a somewhat tight lower bound over the probability that \(|X| \ge a\), then this approach might give us a reasonable lower bound.</p>
+<p>In a very general sense, we want to show that \(|X|\) is &#39;anticoncentrated&#39;; <em>i.e.</em>, it is reasonably &#39;spread out&#39;, which would indicate that its expectation cannot be too small, since it is nonnegative.</p>
+<h2 id="attempt_1">Attempt #1</h2>
+<p>The first idea &#40;or, at least, my first idea&#41; would be to note that, since \(\mathbf{E}[X^2]\) is on the order of \(n\), then maybe we can use this fact to construct a bound for \(\mathbf{E}[|X|]\) which &#39;should be&#39; on the order of \(\sqrt{n}\) assuming some niceness conditions, for example, that \(|X| \le n\) is a bounded variable.</p>
+<p>Unfortunately, just these two simple facts are not enough to prove the claim&#33; We can construct a nonnegative random variable \(Y\ge 0\) such that its second moment is \(\mathbf{E}[Y^2] = n\), it is bounded by \(Y \le n\), yet \(\mathbf{E}[Y] = 1\). In other words, we wish to construct a variable that is very concentrated around \(0\), with &#39;sharp&#39; peaks at larger values.</p>
+<p>Of course, the simplest example would be to take \(Y = n\) with probability \(1/n\) and \(Y=0\) with probability \(1-1/n\). Clearly, this variable is bounded, and has \(n\) as its second moment. On the other hand,</p>
+\[
+\mathbf{E}[Y] = (1/n)n + (1-1/n)0 = 1,
+\]
+<p>which means that the best bound we can hope for, using just these conditions &#40;nonnegativity, boundedness, and second moment bound&#41; on a variable, is a constant. &#40;Indeed, applying a basic argument, we find that this is the smallest expectation possible.&#41;</p>
+<p>This suggests that we need a little more control over the tails of \(|X|\), which gets us to...</p>
+<h2 id="attempt_2_and_solution">Attempt #2 &#40;and solution&#41;</h2>
+<p>Another easy quantity to compute in this case is \(\mathbf{E}[X^4]\). &#40;And, really, any even power of \(X\) is easy. On the other hand, since \(X\) has a distribution that is symmetric around 0, all odd moments are 0.&#41; Splitting the sum out into each of the possible quartic terms, we find that any term containing an odd power of \(X_i\) will be zero in expectation as the \(X_i\) are independent. So, we find</p>
+\[
+\mathbf{E}[X^4] = \sum_{i} \mathbf{E}[X_i^4] + \sum_{i\ne j} \mathbf{E}[X_i^2X_j^2] = n + n(n-1) = n^2.
+\]
+<p>This quantity will come in handy soon.</p>
+<p>We can, on the other hand, split up the expectation of \(X^2\) in a variety of ways. One is particularly handy to get a tail <em>lower bound</em> like the one we wanted in our proof idea &#40;above&#41;:</p>
+\[
+\mathbf{E}[X^2] = \mathbf{E}[X^2\mathbf{1}_{|X| < a}] + \mathbf{E}[X^2\mathbf{1}_{|X| \ge a}] \le a^2 + \mathbf{E}[X^2\mathbf{1}_{|X| \ge a}].
+\]
+<p>The latter term can be upper bounded using Cauchy–Schwarz,<sup id="fnref:csproof">[1]</sup></p>
+\[
+\mathbf{E}[X^2\mathbf{1}_{|X| \ge a}] \le \sqrt{\mathbf{E}[X^4]}\sqrt{\mathbf{E}[\mathbf{1}_{|X| \ge a}]}.
+\]
+<p>&#40;Since \(\mathbf{1}_{|X| \ge a}^2 = \mathbf{1}_{|X| \ge a}\).&#41; And, since \(\mathbf{E}[\mathbf{1}_{|X| \ge a}] = \mathbf{Pr}(|X| \ge a)\), we finally have:</p>
+\[
+\mathbf{E}[X^2] \le a^2 + \sqrt{\mathbf{E}[X^4]}\sqrt{\mathbf{Pr}(|X| \ge a)}.
+\]
+<p>Rearranging gives us the desired lower bound,</p>
+\[
+\mathbf{Pr}(|X| \ge a) \ge \frac{(\mathbf{E}[X^2] - a^2)^2}{\mathbf{E}[X^4]}.
+\]
+<p>&#40;This is a Paley–Zygmund-style bound, except over \(X^2\) rather than nonnegative \(X\).&#41;</p>
+<p>Now, since we know that</p>
+\[
+\mathbf{E}[|X|] \ge a \mathbf{Pr}(|X| \ge a),
+\]
+<p>then we have</p>
+\[
+\mathbf{E}[|X|] \ge a \frac{(\mathbf{E}[X^2] - a^2)^2}{\mathbf{E}[X^4]}.
+\]
+<p>Parametrizing \(a\) by \(a = \alpha\sqrt{\mathbf{E}[X^2]}\) for some \(0 \le \alpha \le 1\), we then have</p>
+\[
+\mathbf{E}[|X|] \ge \alpha(1-\alpha^2)^2\frac{\mathbf{E}[X^2]^{3/2}}{\mathbf{E}[X^4]}.
+\]
+<p>The right-hand-side is maximized at \(\alpha = 1/\sqrt{5}\), which gives the following lower bound</p>
+\[
+\mathbf{E}[|X|] \ge \frac{16}{25\sqrt{5}}\frac{\mathbf{E}[X^2]^{3/2}}{\mathbf{E}[X^4]}.
+\]
+<p>And, finally, using the fact that \(\mathbf{E}[X^2] = n\) and \(\mathbf{E}[X^4] = n^2\), we get the final result:</p>
+\[
+\mathbf{E}[|X|] \ge \frac{16}{25\sqrt{5}}\sqrt{n} \ge \Omega(\sqrt{n}),
+\]
+<p>as required, with no need for combinatorics&#33; Of course the factor of \(16/(25\sqrt{5})
+\approx .29\) is rather weak compared to the factor of \(\sqrt{2/\pi} \approx
+.80\), but this is ok for our purposes.</p>
+<h2 id="general_extensions">General extensions</h2>
+<p>Of course, similar constructions also hold rather nicely for things like uniform \([-1, 1]\) variables, or Normally distributed, mean zero variables. Any variable for which the second and fourth moment can be easily computed allows us to compute a lower bound on this expectation. &#40;Expectations of the absolute value of the sums of independently drawn versions of these variables could be similarly computed.&#41; These have no obvious combinatorial analogue, so those techinques cannot be easily generalized, whereas this bound applies immediately.</p>
+<table class="fndef" id="fndef:csproof">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">Possibly the most elegant proof of Cauchy–Schwarz I know is based on minimizing a quadratic, and goes a little like this. Note that \(\mathbf{E}[(X - tY)^2]\ge 0\) for any \(t \in \mathbf{R}\). &#40;That this expectation exists can be shown for any \(t\) assuming both \(X\) and \(Y\) have finite second moment. If not, the inequality is also trivial.&#41; Expanding gives \(\mathbf{E}[X^2] - 2t\mathbf{E}[XY] + t^2\mathbf{E}[Y^2] \ge 0\). Minimizing the left hand side over \(t\) then shows that \(t^\star = \mathbf{E}[XY]/\mathbf{E}[Y^2]\), which gives </p>
+\[ \mathbf{E}[X^2] - \frac{\mathbf{E}[XY]^2}{\mathbf{E}[Y^2]} \ge 0.\]
+<p>Multiplying both sides by \(\mathbf{E}[Y^2]\) gives the final result.</td>
+    </tr>
+</table> ]]>
+  </content:encoded>
+    
+  <pubDate>Tue, 20 Jun 2023 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  When are fields bounded over all possible designs?  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/bounded-field/index.html </link>
+  <guid> https://angeris.github.io/blog/content/bounded-field/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>There are a few important questions that popped up while writing many of the bounds present in <a href="https://arxiv.org/abs/2011.08002">this paper</a>. One of the main questions that popped up repeatedly was: when are the solutions to the physics equation bounded over all possible designs?</p>
+<p>One specific case in which this question is useful is in the field bounds paragraph in pages 18 and 19 of <a href="https://arxiv.org/abs/2011.08002">the paper</a>, though more generally this question can also help answer a number of other important results &#40;which we do not mention here&#41;.</p>
+<p>Unfortunately, this post will end in a bit of a disappointing note: the result given here depends on some condition which is likely not easy to check in practice. On the other hand, it does lead to a suggestive definition I have never seen before of an &quot;elementwise nonexpansive operator.&quot; I would be quite curious to see if anyone had any references&#33;</p>
+<h2 id="problem_formulation">Problem formulation</h2>
+<p>In this case, we will again focus on the <em>diagonal physics equation</em>. Here, the physics equation is:</p>
+\[
+    (A + \mathbf{diag}(\theta))z = b,
+\]
+<p>where \(\theta \in \mathbf{R}^n\) are the design parameters &#40;usually the permittivities in many problems&#41; while \(z \in \mathbf{R}^n\) are the fields. In general, we are only allowed to choose parameters within a certain range, so we will write this as</p>
+\[
+-1 \le \theta \le 1,
+\]
+<p>without loss of generality. &#40;In particular, if \(\theta\) is constrained to lie within any range, we can always rescale the physics equation to make \(\theta\) lie between \(-1\) and \(1\). For more details on how to do this, see section 1.2 of <a href="https://arxiv.org/pdf/2011.08002">the paper</a>.&#41;</p>
+<h3 id="eliminating_the_design_variable">Eliminating the design variable</h3>
+<p>Taking this formulation, we can &quot;eliminate&quot; the design parameter. In other words, we will write a number of equations, depending only on the variable \(z\), such that, when \(z\) satisfies all the equations, there exists some design \(\theta \in [-1, 1]^n\) which makes the physics equation true.</p>
+<p>To do this, note that, we can take the initial physics equation and rearrange it as follows:</p>
+\[
+Az - b = -\mathbf{diag}(\theta)z.
+\]
+<p>Taking the elementwise absolute value of both sides gives</p>
+\[
+|Az - b| = |\mathbf{diag}(\theta)z|.
+\]
+<p>&#40;Here, we interpret \(|\cdot|\) to be elementwise.&#41; Because \(|\theta| \le 1\), we can see that</p>
+\[
+|\mathbf{diag}(\theta)z| \le |z|,
+\]
+<p>so</p>
+\[
+|Az - b| \le |z|.
+\]
+<p>In fact, \(|\mathbf{diag}(\theta)z| \le |z|\) is true if, and only if, \(|\theta| \le 1\). Meaning the inequality we just derived, depending only on \(z\), is true if, and only if, there exists some design \(\theta\) satisfying \(|\theta| \le 1\) that makes the original physics equation true.</p>
+<p>The nice part about this equation is that it encapsulates all of the important parts of the problem in a simple-to-reason-about format. &#40;It also suggests some <a href="https://www.nature.com/articles/s41598-021-92451-1">interesting heuristics</a>, but that&#39;s for another time&#33;&#41;</p>
+<h2 id="when_are_fields_bounded">When are fields bounded?</h2>
+<p>Now, finally, to answer the question&#33; At least partially.</p>
+<p>The proof technique here is relatively simple: we will </p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Sun, 17 Apr 2022 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  A note on &quot;Optimal Design of Controlled Environment Agricultural Systems &#40;...&#41;&quot;  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/note-optimal-env-systems/index.html </link>
+  <guid> https://angeris.github.io/blog/content/note-optimal-env-systems/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>This is just a basic note on Cetegen and Stuber&#39;s paper &#40;apologies for the paywall&#41; published a few days ago, <a href="https://www.sciencedirect.com/science/article/pii/S0098135421000636"><em>Optimal Design of Controlled Environment Agricultural Systems Under Market Uncertainty</em></a>. This post &quot;simplifies&quot; problem &#40;4&#41; from a bilevel optimization problem to a single &#40;convex&#41; optimization problem which can be readily solved. As a side note, I only skimmed the references provided, and some were too complicated for me to understand, especially at first glance.<sup id="fnref:wat">[1]</sup> It is possible this technique is well known in the specific literature referenced, but hidden under mountains of notation and definitions. I also note that this is not the problem they &#40;approximately&#41; solve, but the method presented here might be useful in that case, too.</p>
+<h2 id="the_one_duality_trick_doctors_dont_want_you_to_know">The One &#40;Duality&#41; Trick Doctors Don&#39;t Want You To Know™</h2>
+<p>I&#39;ve used this trick before in a few other papers, with the main example being a paper coauthored with Kunal Shah and Mac Schwager, found <a href="https://arxiv.org/abs/1905.12875">here</a>, specifically in equation &#40;8&#41; and below, starting on page 10.</p>
+<p>The basic &#40;very general&#33;&#41; idea is to replace a &quot;min-max&quot; optimization problem with a &quot;min&quot; optimization problem. For example, say we are given the following optimization problem</p>
+\[
+\begin{aligned}
+& \text{minimize} && \max_{g(y) \le 0} f(x, y)\\
+& \text{subject to} && h(x) \le 0,
+\end{aligned}
+\]
+<p>with variables \(x \in \mathbb{R}^m\) and \(y \in \mathbb{R}^n\) and functions \(f : \mathbb{R}^m \times \mathbb{R}^n \to \mathbb{R}\), \(g:\mathbb{R}^n \to \mathbb{R}\), and \(h: \mathbb{R}^m \to \mathbb{R}\). Now, consider the usual Lagrangian of the &quot;inner problem&quot; &#40;the one with the max over \(y\)&#41;, which we know is</p>
+\[
+L(x, y,\lambda) = f(x, y) - \lambda g(y).
+\]
+<p>If we define</p>
+\[
+\bar f(x, \lambda) = \sup_{y} L(x, y, \lambda),
+\]
+<p>then, for any \(\lambda \ge 0\) and any feasible \(y\) &#40;<em>i.e.</em>, \(y\) that satisfies \(g(y) \le 0\)&#41;, we have that</p>
+\[
+\bar f(x, \lambda) \ge L(x, y, \lambda) = f(x, y) - \lambda g(y) \ge f(x, y).
+\]
+<p>&#40;The first inequality follows from the definition of \(\sup\) while the last inequality follows since \(\lambda \ge 0\) and \(g(y) \le 0\) which means that \(\lambda g(y) \le 0\).&#41; So, for any \(x\), we know that, if you give me any \(\lambda \ge 0\), then \(\bar f(x, \lambda)\) is an &quot;overestimator&quot; of \(f(x, y)\) for any feasible \(y\). </p>
+<p>But, since this is true for any \(\lambda \ge 0\) and \(x\), then certainly</p>
+\[
+\inf_{\lambda \ge 0} f(x, \lambda) \ge \sup_{g(y) \le 0} f(x, y),
+\]
+<p>for any \(x\).<sup id="fnref:weakduality">[2]</sup></p>
+<p>If we use our new overestimator \(\bar f\) instead of \(f\), our new problem is now a simple optimization problem</p>
+\[
+\begin{aligned}
+& \text{minimize} && \bar f(x, \lambda)\\
+& \text{subject to} && h(x) \le 0\\
+&&& \lambda \ge 0,
+\end{aligned}
+\]
+<p>that is not in min-max form and requires no other special techniques to solve. The optimal value of this problem need not be the same as that of the original, but is always guaranteed to be at least as large.</p>
+<p>Of course, this <em>can</em> help, but it certainly doesn&#39;t solve our problem. We just need one more piece to the puzzle&#33;</p>
+<h3 id="the_hammer">The hammer</h3>
+<p>If you&#39;ve studied a bit of convex analysis the punchline is this: the inequality we have for \(f\) and \(\bar f\) above holds exactly at equality when \(f\) is concave in \(y\) and \(g\) is convex in \(y\). More specifically</p>
+\[
+\inf_{\lambda \ge 0} \bar f(x, \lambda) = \sup_{g(y) \le 0} f(x, y),
+\]
+<p>for any \(x\).<sup id="fnref:strongduality">[3]</sup></p>
+<p>When this is true, the new problem has the same optimal value as the original and any solution \(x\) for the original is a solution to the new problem&#33; &#40;Why?&#41;</p>
+<p>I won&#39;t cover more since the specifics don&#39;t matter too much, but the general idea is simple enough, and we now have all the parts to convert the min-max problem &#40;4&#41; of Cetegen and Stuber to a simple convex optimization problem.</p>
+<h3 id="the_new_and_shiny_problem">The &#40;new and shiny&#41; problem</h3>
+<p>Things are mostly algebra from here on out, so apologies in advance, I guess. I will leave much of the &quot;hard&quot; work to the reader :&#41;</p>
+<p>The complete problem &#40;4&#41; is, as written in the paper, using &#40;mostly&#41; their notation:</p>
+\[
+\begin{aligned}
+    & \text{minimize} && \max_{M \in \mathcal{M}} x^TMx \\
+    & \text{subject to} && r^Tx \ge r_\mathrm{min}\\
+    &&& 1^Tx = 1\\
+    &&& 0 \le x \le 1,
+\end{aligned}
+\]
+<p>with variable \(x \in \mathbb{R}^n\), where \(r\) is some vector of returns &#40;but the specifics don&#39;t matter&#41; and \(\mathcal{M}\) is:</p>
+\[
+\mathcal{M} = \{M \ge 0 \mid M^-_{ij} \le M_{ij} \le M^+_{ij}, ~~ i, j=1, \dots, n\}.
+\]
+<p>In other words, \(\mathcal{M}\) is the set of positive semidefinite matrices &#40;\(M \ge 0\)&#41; whose entries lie between those of \(M^-\) and \(M^+\). I&#39;ve also dropped some constant terms in the objective since those don&#39;t change the problem.</p>
+<p>In this case, the &quot;inner&quot; optimization problem is the one in the objective, which is just</p>
+\[
+\begin{aligned}
+    & \text{maximize} && x^TMx \\
+    & \text{subject to} && M^-_{ij} \le M_{ij} \le M^+_{ij}, ~~ i, j=1, \dots, n\\
+    &&& M \ge 0,
+\end{aligned}
+\]
+<p>with variable \(M \in \mathbb{R}^{n\times n}\). We can easily write a &#40;slightly not canonical&#41; Lagrangian:</p>
+\[
+L(x, M, \Lambda^+, \Lambda^-) = x^TMx - \mathrm{tr}(\Lambda^+(M - M^+)) + \mathrm{tr}(\Lambda^-(M - M^-)),
+\]
+<p>where \(\Lambda^+, \Lambda^- \in \mathbb{R}^{n\times n}_+\) are elementwise nonnegative. &#40;The Lagrangian is non-canonical because I have not included the constraint \(M \ge 0\), which we will enforce below.&#41; It is not hard to show that</p>
+\[
+\sup_{M \ge 0} L(x, M, \Lambda^+, \Lambda^-) = \begin{cases}
+    \mathrm{tr}(\Lambda^+M^+) - \mathrm{tr}(\Lambda^-M^-) & xx^T \le \Lambda^+ - \Lambda^-\\
+    + \infty & \text{otherwise}.
+\end{cases}
+\]
+<p>As before, the inequality between matrices is with respect to the semidefinite cone.</p>
+<p>Plugging this back into the original problem formulation, we now have a convex optimization problem:</p>
+\[
+\begin{aligned}
+    & \text{minimize} &&  \mathrm{tr}(\Lambda^+M^+) - \mathrm{tr}(\Lambda^-M^-)\\
+    & \text{subject to} && r^Tx \ge r_\mathrm{min}\\
+    &&& xx^T \le \Lambda^+ - \Lambda^-\\
+    &&& 1^Tx = 1\\
+    &&& 0 \le x \le 1\\
+    &&& \Lambda^+_{ij}, \Lambda^-_{ij} \ge 0, \quad i,j =1, \dots, n.
+\end{aligned}
+\]
+<p>The &#40;extra&#33;&#41; variables \(\Lambda^+, \Lambda^- \in \mathbb{R}^{n\times n}\) are included along with the original variable \(x \in \mathbb{R}^n\), and the same problem data as before. This problem, by use of the Schur complement applied to the semidefinite inequality, is easily recast into standard SDP form and can be solved by most standard convex optimization problem solvers, such as <a href="https://github.com/cvxgrp/scs">SCS</a> or <a href="https://www.mosek.com">Mosek</a>.</p>
+<p>Quick edit &#40;3/18/22&#41;: Thanks to <a href="https://twitter.com/bodonoghue85">bodonoghue85</a> for <a href="https://twitter.com/bodonoghue85/status/1372634252924358662">finding a typo</a>&#33;</p>
+<p><table class="fndef" id="fndef:wat">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">See, <em>e.g.</em> page 429 of <a href="https://aiche.onlinelibrary.wiley.com/doi/epdf/10.1002/aic.690290312">this paper</a>, where they seem to re-prove basic things like &quot;the supremum of a bunch of convex functions is convex,&quot; and &quot;partial minimization of a convex function is convex,&quot; but I&#39;m honestly not 100&#37; sure.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:weakduality">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content">This is called <em>weak duality</em>, <em>c.f.</em> sections 5.1.3 and 5.2.2 of <a href="https://web.stanford.edu/~boyd/cvxbook/">Convex Optimization</a>.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:strongduality">
+    <tr>
+        <td class="fndef-backref">[3]</td>
+        <td class="fndef-content">This is often referred to as <em>strong duality</em>, <em>c.f.</em> section 5.3.2 of <a href="https://web.stanford.edu/~boyd/cvxbook/">Convex Optimization</a>. There are some additional conditions for equality to hold, but these are almost always met in practice.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Wed, 17 Mar 2021 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Comparisons and information theory: why the worst-case complexity of sorting is n log n  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/sorting-bounds/index.html </link>
+  <guid> https://angeris.github.io/blog/content/sorting-bounds/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>In this post, we&#39;ll talk a bit about the usual proofs about the worst-case query complexity of sorting &#40;at least, in the deterministic case&#41; and then use a beautiful &#40;and surprisingly simple&#33;&#41; tool from computational lower bounds to give a very general argument about the construction </p>
+<h2 id="the_usual_approach">The usual approach</h2>
+<p>There are many notes and posts talking about the fact that sorting will, in the worst case, always take \(\Omega(n \log n)\) comparisons; equivalently, in the worst case, the number of comparisons is about a constant factor away from \(n \log n\) when \(n\) is large. In many cases, the proof presented depends on the fact that the sorting algorithm is deterministic and goes a little like this &#40;see <a href="https://www.bowdoin.edu/~ltoma/teaching/cs231/fall07/Lectures/sortLB.pdf">here</a> for a common case&#41;:</p>
+<h3 id="preliminaries">Preliminaries</h3>
+<p>Let \(C_k\) be the \(k\)th step of a deterministic sorting algorithm &#40;this can be represented, for example, as a tuple containing what the next comparison should be&#41; with input \(L \in K^n\) where \(L\) is a list of \(n\) comparable elements. &#40;For example, \(L\) can be a list of real numbers, in which case \(K = \mathbb{R}\).&#41;</p>
+<p>By the definition of a deterministic algorithm, \(C_k\) depends only on the past \(k-1\) comparisons; <em>i.e.</em>, \(C_k(C_{k-1}, C_{k-2}, \dots, C_1)\). &#40;I am slightly overloading notation here, of course, but the meaning should be clear.&#41; This means that we can view the behavior of the algorithm as a tree, where \(C_k\) is a child node of \(C_{k-1}\) which itself is a child node of \(C_{k-2}\), etc. Additionally, the tree is <em>binary</em> since the output of a comparison is only one of two possibilities &#40;if \(C_k = (a, b)\), then either \(a\le b\) or \(b \le a\)&#41;.</p><img src="https://angeris.github.io/blog/content/images/sorting-bounds/comparison_tree.png" class="insert" style="width: 80%"><p>Finally, let the leaf nodes of this tree be the list of indices &#40;say, \(p\), where each entry is an index, \(p_i \in \{1, \dots, n\}\) for \(i=1, \dots, n\)&#41; such that the list permuted at these indices is sorted, \(L_{p_1} \le L_{p_2} \le \dots, \le L_{p_n}\). Note that the number of nodes needed to get from the root node to a given leaf node &#40;or permutation&#41; is exactly the number of comparisons that the algorithm makes before it returns a specific permutation. If we can show that the height &#40;the length of the longest path from root to leaf&#41; of the tree is always larger than about \(n \log n\), then we&#39;ve shown that this algorithm must take at least \(n \log n\) steps.</p>
+<h3 id="bound_on_the_height">Bound on the height</h3>
+<p>The idea for the bound is pretty simple: since this algorithm is a sorting algorithm and it can receive <em>any</em> unsorted list, then each of the \(n!\) possible permutations must be a leaf node of the tree. &#40;Why?&#41; Additionally, the maximum number of leaves for a binary tree of height \(h\) is \(2^h\), which, in turn, implies that we must have \(2^h \ge n!\). Taking the log of both sides shows that:</p>
+\[
+h = \log(2^h) \ge \log(n!) = \Omega(n\log n),
+\]
+<p>which is exactly what we wanted to show. &#40;The second equality is shown, for example, in the <a href="https://www.bowdoin.edu/~ltoma/teaching/cs231/fall07/Lectures/sortLB.pdf">original reference for this proof</a>; see page 2.&#41;</p>
+<h3 id="some_takeaways_from_this_proof">Some takeaways from this proof</h3>
+<p>To prove this statement we only really used a few things: &#40;a&#41; the algorithm has to decide between \(n!\) things, and &#40;b&#41; at each query, it only receives a &quot;yes&quot; or a &quot;no&quot; &#40;as we will soon make rigorous, it only gains 1 bit of information from each query&#41;. The rest of the proof simply sets up scaffolding for the remaining parts, most of which is really somewhat orthogonal to our intuition. The point is: look, we have \(n!\) things we have to decide on and every time we ask a question, we cut down our list of possible true answers by about half. How many times do we need to cut down our list to be able to have exactly one possible answer? &#40;Of course, as we showed before, this should be \(\log_2(n!)\).&#41;</p>
+<p>Now, a good number of writings &#40;and some textbooks&#41; I&#39;ve seen simply end here by saying &quot;the algorithm gains at most 1 bit for every query and we need at least \(\log(n!) \sim n \log n\) bits&quot; and then give some vague citation to Shannon&#39;s theorem about communication without explicitly writing out any argument. &#40;While there is some connection, it&#39;s unclear what it is or how to even make it rigorous in a general sense.&#41; It&#39;s a bit of a shame since it doesn&#39;t really take much math to fully justify this intuitive statement, as we will see next.</p>
+<h2 id="an_information-theoretic_approach">An information-theoretic approach</h2>
+<p>The idea behind a &#40;simple&#41; information theoretic approach is to view the algorithm as attempting to &#39;uncover&#39; the true, sorted permutation by querying an oracle that knows whether two elements are in sorted order or not. Here, the oracle gets to choose some &#39;true&#39; permutation uniformly at random and then the sorting algorithm queries the oracle in a restricted sense: it can only ask yes or no questions about the list.</p>
+<p>More formally, we will let \(\mathcal X\) be the set of all \(n!\) possible permutations of \(1\) through \(n\) and let \(X\) the oracle&#39;s permutation such that \(X \sim \mathcal X\) is uniformly randomly sampled from \(\mathcal X\). Then, the algorithm gets to ask a sequence of yes/no queries \(Y_i \in \{0, 1\}\) for \(i=1, \dots, k\) which are dependent on the permutation \(X\), and, at the end of \(k\) queries, must respond with some &#39;guess&#39; for the true permutation \(\hat X\), which is a random variable that depends only on \(Y\).</p>
+<p>We can represent the current set up as a Markov chain \(X \to Y \to \hat X\), since \(\hat X\) is conditionally independent of \(X\) given \(Y\) &#40;<em>i.e.</em>, the algorithm can only use information given by \(Y\)&#41; while the random variable \(Y\) depends only on \(X\). The idea then is to give a bound on the number of queries \(k\) required for an algorithm to succeed with probability 1.</p>
+<p>To give a lower bound on this quantity, we&#39;ll use a tool from information theory called Fano&#39;s inequality, which, surprisingly, I don&#39;t often see taught in information theory courses. &#40;Perhaps I haven&#39;t been taking the right ones&#33;&#41;</p>
+<h3 id="fanos_inequality">Fano&#39;s inequality</h3>
+<p>I learned about this lovely inequality in John Duchi&#39;s class, EE377: <em>Information Theory and Statistics</em> &#40;the lectures notes for the class are <a href="http://web.stanford.edu/class/stats311/lecture-notes.pdf">here</a>&#41;. Its proof really makes it clear why entropy, as defined by Shannon, is pretty much the exact right quantity to look at. We&#39;ll explore a weaker version of it here that is simpler to prove and requires fewer definitions but which will suffice for our purposes.</p>
+<p>We will use \(X, Y\) as random variables and set \(H\) as the entropy, defined:</p>
+\[
+H(X) = -\sum_{X \in \mathcal{X}}P(X) \log P(X),
+\]
+<p>where \(\mathcal{X}\) is the space of values that \(X\) can take on. The conditional entropy of \(X\) given \(Y\) is defined as</p>
+\[
+H(X|Y) = -\sum_{Y \in \mathcal Y} P(Y) \sum_{X \in \mathcal X} P(X\mid Y) \log P(X\mid Y) = H(X, Y) - H(Y).
+\]
+<p>As usual, the entropy \(H\) is a measure of the &#39;uncertainty&#39; in the variable \(X\), with the maximally uncertain distribution being the uniform one.<sup id="fnref:entropy">[1]</sup> Additionally, note that \(H(X, Y)\) is the entropy taken with respect to the joint distribution of \(X\) and \(Y\). Finally, if \(X\) is a deterministic function of \(Y\), then \(H(X\mid Y) = 0\) which follows from the definition.</p>
+<p>For this post, we will only make use of the following three properties of the entropy &#40;I will not prove them here, as there are many available proofs of them, including the notes above and Cover&#39;s famous <em>Elements of Information Theory</em>&#41;:</p>
+<ol>
+<li><p>The entropy can only decrease when removing variables, \(H(X, Y) \ge H(X)\).</p>
+</li>
+<li><p>The entropy is smaller than the log of the size of the sample space \(H(X \mid Y) \le H(X) \le \log|\mathcal X|\). &#40;Equivalently, conditioning reduces entropy, and the uniform distribution on \(\mathcal X\) has the highest possible entropy, \(\log|\mathcal X|\).&#41;</p>
+</li>
+<li><p>If a random variable \(\hat X\) is conditionally independent of \(X\) given \(Y\) &#40;<em>i.e.</em>, if \(X \to Y \to \hat X\) is a Markov chain&#41;, then \(H(X\mid \hat X) \ge H(X\mid Y)\). This is often called a <a href="https://en.wikipedia.org/wiki/Data_processing_inequality">data processing inequality</a>, which simply says that \(X\) has smaller entropy knowing \(Y\) than knowing a variable, \(\hat X\), that has undergone further processing. In other words, you cannot gain more information about \(X\) from a variable \(Y\) by further processing \(Y\).</p>
+</li>
+</ol>
+<p>This is all we need to prove the following inequality. Let \(X \to Y \to \hat X\) be a Markov chain such that \(\hat X\) is conditionally independent of \(X\) given \(Y\) and \(X\) is uniformly drawn from \(\mathcal X\), then the probability that \(X \ne \hat X\) is given by \(P_e\) and \(P_e\) satisfies</p>
+\[
+P_e \ge 1 - \frac{k+1}{\log |\mathcal X|},
+\]
+<p>where \(k\) is the number of binary queries made and \(|\mathcal X|\) is the number of elements in \(\mathcal X\).</p>
+<h3 id="a_quick_aside">A quick aside</h3>
+<p>Proving this inequality is enough to show the claim. Note that, we want the probability of error to be 0 &#40;since we want our algorithm to work&#33;&#41; so</p>
+\[
+1 - \frac{k+1}{\log |\mathcal X|} \le 0 \quad \text{implies} \quad k+1 \ge \log |\mathcal X|,
+\]
+<p>and, since \(|\mathcal X|\) is the space of possible permutations of size \(n\), &#40;of which there are \(n!\) of&#41; then \(|\mathcal X| = n!\) and \(\log n! \sim \Omega(n \log n)\) then \(k\) must satisfy</p>
+\[
+k = \Omega(n \log n).
+\]
+<p>In other words, the number of queries &#40;or comparisons, or whatever&#41; \(k\) must be approximately at least as large as \(n \log n\), asymptotically &#40;up to constant multiples&#41;. In fact, this proves a slightly <em>stronger</em> statement that no probabilistic algorithm can succeed with nonvanishing probability if the number of queries is not on the order of \(n \log n\), which our original proof above does not cover&#33;</p>
+<p>Now, the last missing piece is showing that the probability of error is bounded from below.</p>
+<h3 id="a_proof_of_fanos_inequality">A proof of Fano&#39;s inequality</h3>
+<p>This is a slightly simplified version of the proof presented in <a href="http://web.stanford.edu/class/stats311/lecture-notes.pdf">Duchi&#39;s notes</a> &#40;see section 2.3.2&#41; for the specific case we care about, which requires less additional definitions and supporting statements. Let \(E\) be the &#39;error&#39; random variable that is \(1\) if \(X \ne \hat X\) and 0 otherwise, then let&#39;s look at the quantity \(H(E, X\mid \hat X)\):</p>
+\[
+H(E, X\mid \hat X) = H(X\mid \hat X, E) + H(E\mid \hat X),
+\]
+<p>by our definition of conditional entropy, and</p>
+\[
+H(X\mid \hat X, E) = P_e H(X\mid \hat X, E=1) + (1-P_e)H(X\mid \hat X, E=0),
+\]
+<p>again by the same definition. Since \(X = \hat X\) whenever there is no error, \(E=0\), then \(H(X\mid \hat X, E=0) = 0\) since \(X\) is known, so, we really have</p>
+\[
+H(E, X\mid \hat X) = P_e H(X\mid \hat X, E=1) + H(E\mid \hat X).
+\]
+<p>Since \(E\) can only take on two values, we have that \(H(E\mid \hat X) \le \log(2) = 1\) and we also have that \(H(X\mid \hat X, E=1) \le \log |\mathcal X|\), which gives</p>
+\[
+H(E, X\mid \hat X) \le P_e \log|\mathcal X| + 1.
+\]
+<p>Now, we have that</p>
+\[
+H(E, X\mid \hat X) \ge H(X\mid \hat X) \ge H(X\mid Y).
+\]
+<p>The first inequality follows from the fact that we&#39;re removing a variable and the second follows from statement 3 in the previous section &#40;as \(X \to Y \to \hat X\)&#41;. Using the definition of \(H(X\mid Y)\), then we have</p>
+\[
+H(X, Y) - H(Y) \ge H(X) - H(Y) = \log |\mathcal X| - H(Y) \ge \log |\mathcal X| - \log|\mathcal Y|. 
+\]
+<p>The first inequality here follows since we&#39;re &#40;again&#33;&#41; removing a variable and the equality follows from the fact that \(X\) is uniformly randomly drawn from \(\mathcal X\) and the last inequality follows from the fact that the entropy of \(Y\) is always smaller than that of the uniform distribution on \(\mathcal Y\). Finally, note that, if we have \(k\) queries, then \(|\mathcal Y| = 2^k\) &#40;this is the number of possible values a sequence of \(k\) binary queries can take on&#41;. So, \(\log |\mathcal Y| = k\) &#40;in other words, the maximum amount of information we can get with \(k\) binary queries is \(k\) bits&#41; so we find</p>
+\[
+\log |\mathcal X| - k \le P_e\log |\mathcal X| + 1,
+\]
+<p>or, after some slight rewriting:</p>
+\[
+P_e \ge 1 - \frac{k+1}{\log |\mathcal X|},
+\]
+<p>as required&#33;</p>
+<h3 id="some_discussion">Some discussion</h3>
+<p>I think overall that Fano&#39;s inequality is a relatively straightforward way of justifying a ton of the statements one can make about information theory without needing to invoke a large number of more complicated notions. Additionally, the proof is relatively straightforward &#40;in the sense that it only requires very few definitions and properties of the entropy&#41; while also matching our intuition about these problems pretty much exactly.</p>
+<p>In particular, we see that sorting is hard not because somehow ordering elements is difficult, but because we have to decide between a bunch of different items &#40;in fact, \(n!\) of them&#41; while only receiving a few bits of information at any point in time&#33; In fact, this bound applies to <em>any</em> yes/no query that one can make of the sorted data, not just comparisons, which is interesting.</p>
+<p>There are some even more powerful generalizations of Fano&#39;s inequality which can also be extended to machine learning applications: you can use them to show that, given only some small amount of data, you cannot decide between a parameter that correctly describe the data and one that does not.</p>
+<p>This is all to say that, even though entropy is a magical quantity, that doesn&#39;t mean we can&#39;t say very rigorous things about it &#40;and make our intuitions about lower bounds even more rigorous, to boot&#33;&#41;.</p>
+<table class="fndef" id="fndef:entropy">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">In fact, the entropy is really a measure of how close a variable is to the uniform distribution, in the case of compact domains \(\mathcal X\)—the higher the entropy, the closer it is.</td>
+    </tr>
+</table> ]]>
+  </content:encoded>
+    
+  <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  The S-procedure and small covering ellipsoids  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/covering-ellipsoid/index.html </link>
+  <guid> https://angeris.github.io/blog/content/covering-ellipsoid/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p><em>Note:</em> This post was inspired by <a href="https://msl.stanford.edu/people/kunal-shah">Kunal Shah</a>&#39;s question that came up at some point during one of our meetings: is there an efficient way of finding an ellipsoid which covers the intersections and unions of a bunch of other ellipsoids?</p>
+<p>While this question has been explored <a href="https://pdfs.semanticscholar.org/ab38/565f7957f7ee4980663324b5820b0a018de2.pdf">somewhat</a> <a href="http://www.optimization-online.org/DB_FILE/2018/07/6719.pdf">extensively</a>, the exposition is often more general than necessary and aimed at a relatively mathematical audience. Either way, if you&#39;re interested, both papers are fairly well-written—I highly recommend at least a quick skim&#33;</p>
+<h1 id="the_s-procedure">The S-procedure</h1>
+<p>The <a href="https://en.wikipedia.org/wiki/S-procedure">S-procedure</a> is a well known lemma in control theory that seeks to answer the following question:</p>
+<p>Let&#39;s say we have a bunch of quadratic functions \(f_0, f_1, f_2, \dots, f_n : \mathbb{R}^m \to \mathbb{R}\). When is it true that</p>
+\[
+    f_i(x) \le 0 ~~ \text{for $i=1, \dots, n$} \implies  f_0(x) \le 0,
+\]
+<p>for \(x \in \mathbb{R}^m\)? &#40;Recall that a quadratic is a function of the form \(f(x) = x^TPx + 2q^Tx + r\) for symmetric \(P \in \mathbb{R}^{m\times m}\), \(q \in \mathbb{R}^m\), and \(r \in \mathbb{R}\)&#41;.</p>
+<p>There are many reasons to attempt to answer this &#40;surprisingly useful&#41; question. The original motivations were to show <a href="https://stanford.edu/class/ee363/lectures/lmi-s-proc.pdf">stability of systems</a>, though the domain of applications is certainly larger. We can use this to show anything from impossibility results &#40;for example, many of the results of <a href="https://arxiv.org/abs/1811.12936">this paper</a> can be recast in terms of the S-procedure&#41; to, well, in our case, the construction of a small covering ellipsoid from a bunch of other ellipsoids, which is itself useful for things like filtering &#40;for localizing drones from noisy measurements for example&#41; along with many other applications.</p>
+<p>If you&#39;re familiar with Lagrange duality, this is mostly an equivalent statement—except that this statement is in the special case of quadratics, where you can say a little more than with general functions.</p>
+<h2 id="the_n1_case">The \(n=1\) case</h2>
+<p>We can fully and completely answer this question in the case that \(n=1\): there exists a nonnegative number \(\tau \ge 0\) such that</p>
+\[
+    f_0(x) \le \tau f_1(x)
+\]
+<p>for all \(x\) if, and only if, \(f_1(x) \le 0 \implies f_0(x) \le 0\).</p>
+<p>Why? Well, let say we have a \(\tau\ge 0\) that satisfies the above inequality. Then, if we have an \(x\) such that \(f_1(x) \le 0\), then</p>
+\[
+f_0(x) \le \tau f_1(x) \le \tau0 = 0.
+\]
+<p>The converse is slightly trickier, so I will defer to <a href="http://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf">B&amp;V&#39;s <em>Convex Optimization</em></a> which has a very readable presentation of the proof &#40;see B.1 and B.2 in the appendix&#41;.</p>
+<h2 id="the_general_case">The general case</h2>
+<p>The general case is really only a slight change from the \(n=1\) case &#40;except that the converse of the statement is not true&#41;. In particular, if there exist \(\lambda \ge 0\) such that</p>
+\[
+    f_0(x) \le \sum_i \lambda_i f_i(x) ~~ \text{for all $x \in \mathbb{R}^m$},
+\]
+<p>then, \(f_i(x) \le 0 ~ \text{for} ~ i = 1, \dots, n \implies f_0(x) \le 0\). Showing this is nearly the same as the \(n=1\) case,</p>
+\[
+f_0(x) \le \sum_i \lambda_i f_i(x) \le \sum_i \lambda_i 0 = 0.
+\]
+<p>So now we have a family of sufficient &#40;but not necessary&#33;&#41; conditions for which we know when \(f_i(x) \le 0 ~ \text{for} ~ i = 1, \dots, n\) implies that \(f_0(x) \le 0\).</p>
+<h1 id="covering_ellipsoids_for_unions">Covering ellipsoids for unions</h1>
+<h2 id="definitions_and_connections">Definitions and connections</h2>
+<p>Ellipsoids are a particularly nice family to work with since, as you may have guessed, they are the sets defined by</p>
+\[
+\mathcal{E} = \{x \mid f(x) \le 0\},
+\]
+<p>where \(f: \mathbb{R}^m \to \mathbb{R}\) is a convex quadratic. This definition gives us a way of translating statements about sets &#40;inclusion, etc&#41; into statements about the functions which generate them. In particular, if we have two ellipsoids \(\mathcal{E}, \mathcal{E}_0 \subseteq \mathbb{R}^n\) defined by the convex quadratics \(f, f_0\), then</p>
+\[
+\mathcal{E} \subseteq \mathcal{E}_0 \iff (f(x) \le 0 \implies f_0(x) \le 0).
+\]
+<p>But wait a minute, we know exactly when this happens&#33; By the previous section, we found that</p>
+\[
+f(x) \le 0 \implies f_0(x) \le 0,
+\]
+<p>if and only if there is some \(\tau \ge 0\) with \(f_0(x) \le \tau f(x)\). Also note that if we have a union of a bunch of ellipsoids &#40;say \(\mathcal{E}_1, \dots, \mathcal{E}_m\)&#41; that we want to cover with an ellipsoid \(\mathcal{E}_0\), then this is the same as saying</p>
+\[
+\mathcal{E}_i \subseteq \mathcal{E}_0, ~\text{for $i=1, \dots, m$},
+\]
+<p>or, that each ellipsoid is covered by the big one, \(\mathcal{E}_0\).</p>
+<h2 id="back_to_our_goal">Back to our goal</h2>
+<p>Ok, to reiterate, we are looking for a small ellipsoid \(\mathcal{E}_0 = \{x \mid f_0(x) \le 0\}\) such that \(\mathcal{E}_0\) contains all of the other ellipsoids \(\mathcal{E}_i = \{x \mid f_i(x) \le 0\}\), where the \(f_i\) and \(f_0\) are convex quadratics. In other words, using the results of the previous subsection, we look for a quadratic \(f_0\) such that</p>
+\[
+(f_i(x) \le 0 \implies f_0(x) \le 0) ~~ \text{for each $i$}
+\]
+<p>which we know happens only when there exists some \(\tau_i \ge 0\) with</p>
+\[
+f_0(x) \le \tau f_i(x) ~~ \text{for each $i$ and all $x$}.
+\]
+<p>Now remains the final question: given two quadratics, \(f_i\) and \(f_0\) and some number \(\tau \ge 0\), how can we check if \(f_0(x) \le \tau f_i(x)\) for all \(x\)? I won&#39;t prove this &#40;though I have written a quick proof of this statement in my notes, found <a href="https://angeris.github.io/blog/notes/lmi-iff-quadratic-inequality.pdf">here</a>&#41;, but, if we let \(f_i(x) = x^TP_ix + 2q_i^Tx + r_i\) and \(f_0(x) = x^TP'x + 2(q')^Tx + r'\) then \(f_0(x) \le f_i(x)\) for all \(x\) if, <em>and only if</em>,</p>
+\[
+\begin{bmatrix}
+P' & q\\
+(q')^T & r'
+\end{bmatrix} \le \tau\begin{bmatrix}
+P_i & q_i\\
+q_i^T & r_i
+\end{bmatrix},
+\]
+<p>where we say two symmetric matrices \(A, B\) satisfy \(A \le B\) whenever \(x^TAx \le x^TBx\) for all \(x\). A straightforward exercise it to verify that the set of matrices \(A \ge 0\) is a convex cone &#40;almost universally called the positive semidefinite or PSD cone&#41;.</p>
+<p>This rewriting is extremely useful, since we&#39;ve turned a problem over a potentially difficult-to-handle space &#40;the space of quadratics greater than or equal to another&#41; into a problem that is easy to handle &#40;the PSD cone&#41;. The best news, though, is that we have efficient algorithms to solve optimization problems whose constraints are PSD constraints.<sup id="fnref:lmibook">[1]</sup></p>
+<h2 id="corresponding_optimization_problem">Corresponding optimization problem</h2>
+<p>Finally, after enough background, we can get to the final goal: writing an efficiently-solvable optimization problem to give us a small bounding ellipsoid.</p>
+<p>There are several ways of defining &quot;small,&quot; in the case of ellipsoids, but one of the most common definitions is to pick the ellipsoid with the smallest volume. In the case that \(\mathcal{E}_0 = \{x \mid x^TP'x + 2(q')^Tx + r \le 0\}\), the <em>volume</em> of this ellipsoid is given by the determinant, \(\mathop{\mathrm{det}} P'\), of the matrix \(P'\). So, we can write—using the conditions given above—an optimization problem corresponding to finding the smallest &#40;in volume&#41; ellipsoid \(\mathcal{E}_0\) which contains all ellipsoids, \(\mathcal{E}_i\) as</p>
+\[
+\begin{aligned}
+& \underset{P', q', r', \tau}{\mathrm{minimize}}
+& & \mathop{\mathrm{det}} P'  \\
+& \text{subject to}
+& & \begin{bmatrix}
+P' & q\\
+(q')^T & r'
+\end{bmatrix} \le \tau_i\begin{bmatrix}
+P_i & q_i\\
+q_i^T & r_i
+\end{bmatrix}, \quad i = 1, \dots, n.
+\end{aligned}
+\]
+<p>The only problem here &#40;which we can easily fix&#41; is that the determinant is not a convex function. On the other hand, the <em>log</em> determinant <em>is</em> &#40;for a proof, see the <a href="https://web.stanford.edu/~boyd/cvxbook/">Convex book</a>, section 3.1.5&#41;, so we can write,</p>
+\[
+\begin{aligned}
+& \underset{P', q', r', \tau}{\mathrm{minimize}}
+& & \log \mathop{\mathrm{det}} P'  \\
+& \text{subject to}
+& & \begin{bmatrix}
+P' & q\\
+(q')^T & r'
+\end{bmatrix} \le \tau_i\begin{bmatrix}
+P_i & q_i\\
+q_i^T & r_i
+\end{bmatrix}, \quad i = 1, \dots, n.
+\end{aligned}
+\]
+<p>This is equivalent to the original problem since \(\log(y)\) is an increasing function of \(y\). </p>
+<p>Of course, any convex function &#40;such as, for example the trace&#41; would do here as well.</p>
+<h1 id="covering_ellipsoids_for_intersections_and_unions">Covering ellipsoids for intersections and unions</h1>
+<p>Ok, now we know how to solve the problem where we have a bunch of ellipsoids and we want to find an ellipsoid which covers all of them. How about the problem where we want to find an ellipsoid which also covers the sets \(\{N_i\}\) for \(i=1, \dots, k\), which are, themselves, intersections of ellipsoids?</p>
+<p>In particular, if \(N_i\) is defined as</p>
+\[
+N_i = \bigcap_{j \in I_i} \mathcal{E}_j,
+\]
+<p>for some index set \(I_i \subseteq \{1, \dots, n\}\) and some set of ellipsoids \(\{\mathcal{E}_j\}\), each of which are defined as before &#40;\(\mathcal{E}_j = \{x \mid f_j(x) \le 0 \}\)&#41;, we can perform a similar trick to the one above&#33;</p>
+<p>More generally, if we have an ellipsoid \(\mathcal{E}_0 = \{x \mid f_0(x) \le 0\}\), then</p>
+\[
+N_i \subseteq \mathcal{E}_0 \iff (f_j(x) \le 0 ~~ \text{for $j \in I_i$} \implies f_0(x) \le 0).
+\]
+<p>&#40;It&#39;s a worthwhile exercise to think about why, but it follows the same idea as before.&#41; In other words, \(\mathcal{E}_0\) is a superset of \(N_i\) only when <em>a bunch of quadratic inequalities imply another</em>. &#40;Where have we seen this before...?&#41;</p>
+<p>In other words, we know that &#40;by the first section&#41;, if there exist \(\lambda \ge 0\) such that</p>
+\[
+f_0(x) \le \sum_{j \in I_i} \lambda_{j} f_j(x),
+\]
+<p>then we immediately have that \(N_i \subseteq \mathcal{E}_0\). Since the converse is not true, we are sadly not guaranteed to actually find the smallest bounding ellipsoid \(\mathcal{E}_0\), but this is usually quite a good approximation &#40;if it&#39;s not exact&#41;.</p>
+<p>Following exactly the same steps as in the previous section and using the same definitions, we now get a new program for minimizing the volume for the union and intersection of ellipsoids:</p>
+\[
+\begin{aligned}
+& \underset{P', q', r', \lambda}{\mathrm{minimize}}
+& & \log \mathop{\mathrm{det}} P'  \\
+& \text{subject to}
+& & \begin{bmatrix}
+P' & q\\
+(q')^T & r'
+\end{bmatrix} \le \sum_{j \in I_i}\lambda_{ij}\begin{bmatrix}
+P_j & q_j\\
+q_j^T & r_j
+\end{bmatrix}, \quad i = 1, \dots, k \\
+&&& \lambda_{ij} \ge 0, \quad i=1, \dots, k, ~~ j \in I_i.
+\end{aligned}
+\]
+<p>As before, this program does not guarantee actually finding the minimal volume ellipsoid, but it is likely to be quite close&#33; &#40;That is, if it&#39;s not spot on, most of the time.&#41;</p>
+<table class="fndef" id="fndef:lmibook">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">For more information, see Boyd&#39;s <a href="https://web.stanford.edu/~boyd/lmibook/">Linear Matrix Inequalities</a> book.</td>
+    </tr>
+</table> ]]>
+  </content:encoded>
+    
+  <pubDate>Wed, 05 Jun 2019 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Physics, optimization, and impossibility  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/physics-impossibility-results/index.html </link>
+  <guid> https://angeris.github.io/blog/content/physics-impossibility-results/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p><em>Note:</em> this post is based on the results of <a href="https://arxiv.org/abs/1811.12936">this arXiv paper</a> which I&#39;ve been working on with Stephen Boyd and Jelena Vuckovic.</p>
+<p>The main result of the above paper is kind of weird: essentially, it turns out that you can say what devices are physically <em>impossible</em> by phrasing certain problems as optimization problems and then using some basic tools of optimization to derive lower bounds.</p>
+<p>To illustrate: imagine you want to generate an engine which is as efficient as possible, then we know the best you could possibly hope to do is given by the <a href="https://en.wikipedia.org/wiki/Second_law_of_thermodynamics">second law of thermodynamics</a>. Now, what if &#40;and bear with me here&#41; we want something a little weirder? Say, what if we want a heat sink that has a particular dissipation pattern? Or what if you want a photonic crystal that traps light of a given wavelength in some region? Or a horn which has specific resonances?</p>
+<p>We can write down the optimization problems corresponding to each of these circumstances: in general, these problems are very hard to solve in ways that aren&#39;t just &quot;try all possible designs and pick the best one.&quot; &#40;And there are a <em>lot</em> of possible designs.&#41; On the other hand, by using some simple heuristics—gradient descent, for example—we appear to give much better devices than what almost anyone can do by hand. This approach, while it appears to work well in practice, brings up a few questions with no obvious answers.</p>
+<ol>
+<li><p>Maybe there is some design that is really complicated that these heuristics almost always miss, but that is much better than the current ones.</p>
+</li>
+<li><p>It is possible that the objective we are requesting is physically impossible to achieve and we will never find a good design.</p>
+</li>
+<li><p>Many heuristics depend heavily on the initial design we provide. Physical intuition sometimes appears to provide good initializations, but often the final design is unintuitive, so perhaps there are better approaches.</p>
+</li>
+</ol>
+<p>The paper provides &#40;some&#41; answers to these questions. In particular, it answers point &#40;2&#41; as its main goal, which gives a partial answer to &#40;1&#41; &#40;namely that the heuristics we use appear to give designs that are often close to the best possible design, at least for the problems we tested&#41;, and an answer to &#40;3&#41;, since the impossibility result suggests an initial design as a byproduct of computing the certificate of impossibility.</p>
+<p>I&#39;ll explain the interesting parts of this paper in more detail below, since the paper &#40;for the sake of brevity&#41; simply references the reader to derivations of the results &#40;and leaves some as exercises&#41;.</p>
+<h2 id="lagrange_duality">Lagrange duality</h2>
+<p>In optimization theory, there is a beautiful idea called <em>Lagrange duality</em>, which gives lower bounds to any optimization problem you can write down &#40;at least theoretically speaking&#41;.</p>
+<p>Let&#39;s say we have the following optimization problem,</p>
+\[
+\begin{array}{ll}
+\text{minimize} & f(x)\\
+\text{subject to} & h(x) \le 0,
+\end{array}
+\]
+<p>&#40;this encompasses essentially every optimization problem ever&#41; with objective function \(f: \mathbb{R}^n \to \mathbb{R}\) and constraint function \(h: \mathbb{R}^n \to \mathbb{R}^m\), where the inequality is taken elementwise. Call the optimal value of the objective of the optimization problem \(p^\star\), which we will see again soon.</p>
+<p>Continuing, we can then formulate the <em>Lagrangian</em> of the problem,</p>
+\[
+\mathcal{L}(x, \lambda) = f(x) + \lambda^Th(x),
+\]
+<p>with \(\lambda \ge 0\). Finally, we formulate the dual <em>function</em></p>
+\[
+g(\lambda) = \inf_x \left(f(x) + \lambda^Th(x)\right).
+\]
+<p>Now, and here&#39;s the magic, this dual function \(g(\lambda)\) at any \(\lambda \ge 0\) is always a lower bound for the optimal objective \(p^\star\). Why? Well,</p>
+\[
+g(\lambda) = \inf_x \mathcal{L}(x, \lambda),
+\]
+<p>and, by definition of \(\inf\),</p>
+\[
+\inf_x \mathcal{L}(x, \lambda) \le \mathcal{L}(x, \lambda),
+\]
+<p>for every \(x\). Now, every feasible point \(x^\mathrm{feas}\) of the optimization problem satisfies \(h(x) \le 0\) &#40;this is the definition of &#39;feasible&#39;&#41;, so, since \(\lambda \ge 0\),</p>
+\[
+\mathcal{L}(x^\mathrm{feas}, \lambda) = f(x^\mathrm{feas}) + \underbrace{\lambda^Th(x^\mathrm{feas})}_{\le 0} \le f(x^\mathrm{feas}).
+\]
+<p>In other words, for any feasible point, \(\mathcal{L}(x^\mathrm{feas}, \lambda)\) is always smaller than the objective value at that point. But, since \(g(\lambda)\) is smaller than \(\mathcal{L}(x, \lambda)\) for <em>any</em> \(x\), not just the feasible ones, we have</p>
+\[
+g(\lambda) \le f(x^\mathrm{feas}),
+\]
+<p>for any feasible point. This means that it is also at most as large as the optimal value &#40;since every optimal point of this optimization problem is feasible&#41;. That is,</p>
+\[
+g(\lambda) \le p^\star.
+\]
+<p>Therefore, for any \(\lambda\ge 0\), we know that \(g(\lambda)\) is always a lower bound to the optimal objective value&#33;</p>
+<p>Of course, sometimes computing \(g(\lambda)\) is at least as difficult as solving the original problem &#40;due to the \(\inf\) we have in the definition of \(g\)&#41;. It just so happens that many physical equations and objectives we care about are of a form elegant enough to give an explicit formula for \(g\), which is the main point of this paper.</p>
+<h3 id="best_lower_bound">Best lower bound</h3>
+<p>Of course, we often want the best &#40;largest&#41; lower bound, not just <em>a</em> lower bound &#40;which can often be quite bad&#41;. In other words, we want to maximize our lower bound. We can phrase this as the new optimization problem,</p>
+\[
+\begin{array}{ll}
+\text{maximize} & g(\lambda)\\
+\text{subject to} & \lambda \ge 0.
+\end{array}
+\]
+<p>What is interesting is that this optimization problem is always convex—<em>e.g.</em>, it is almost always easy to compute the optimal value, <em>if</em> we can explicitly write down what \(g\) is. &#40;I won&#39;t prove this here, but the proof is very straightforward. Take a peek at section 5.1.2 in Boyd&#39;s <a href="https://web.stanford.edu/~boyd/cvxbook/"><em>Convex Optimization</em></a>.&#41;</p>
+<h2 id="explicit_dual_function_for_g">Explicit dual function for \(g\)</h2>
+<h3 id="problem_formulation">Problem formulation</h3>
+<p>Many of the problems we&#39;re interested in &#40;including design in photonics via Maxwell&#39;s equations,<sup id="fnref:maxwell">[1]</sup> acoustics via Helmholtz&#39;s equations, quantum mechanics via Schrodinger&#39;s equation, and heat engineering via the heat equation&#41; have physics equations of the form &#40;once discretized&#41;</p>
+\[
+(A + \mathrm{diag}(\theta))z = b,
+\]
+<p>where \(\theta \in \mathbb{R}^n\) are the design parameters &#40;<em>e.g.</em> permittivity in the case of photonics, or speed of sound in the material in the case of acoustics&#41; and \(z \in \mathbb{R}^n\) is the field &#40;<em>e.g.</em> the electric field in photonics, or the amplitude of the wave in acoustics&#41;. \(A \in \mathbb{R}^{n\times n}\) is a matrix encoding the physics &#40;the curl of the curl in Maxwell&#39;s equations, or a discretized Laplacian in Helmholtz&#39;s&#41; and \(b \in \mathbb{R}^n\) is an excitation of the field.</p>
+<p>More specifically, take a peek at Helmholtz&#39;s equation:</p>
+\[
+\nabla^2 a(x) + \left(\frac{\omega^2}{c(x)^2}\right)a(x) = u(x),
+\]
+<p>where \(c: \mathbb{R}^3 \to \mathbb{R}_{> 0}\) is a function specifying the speed of sound at every point in the material, while \(a: \mathbb{R}^3 \to \mathbb{R}\) is a function specifying the amplitude at each point, \(u: \mathbb{R}^3 \to \mathbb{R}\) is a function specifying an excitation, and \(\omega \in \mathbb{R}_{\ge 0}\) is the frequency of the wave. We can make some simple correspondences:</p>
+\[
+\Bigg(\underbrace{\nabla^2}_{A} + \underbrace{\bigg(\frac{\omega^2}{c(x)^2}\bigg)}_{\mathrm{diag}(\theta)}\Bigg)\underbrace{a(x)}_{z} = \underbrace{u(x)}_{b}.
+\]
+<p>Now, we usually want the field &#40;\(z\)&#41; to look similar to a desired field &#40;which we will call \(\hat z\)&#41;, while satisfying the physics equation described above. We can phrase this in several ways, but a <a href="https://angeris.github.io/blog/ls-images.html">particularly natural one</a> is by attempting to minimize the objective \(\left\|z - \hat z\right\|_2^2\).</p>
+<p>Finally, we are only able to choose materials within a specific range: that is, \(\theta^\mathrm{min} \le \theta \le \theta^\mathrm{max}\).</p>
+<p>Putting all of this together, we can write the optimization problem as</p>
+\[
+\begin{array}{ll}
+\text{minimize} & \frac12\left\|z - \hat z\right\|_2^2\\
+\text{subject to} & (A + \mathrm{diag}(\theta))z = b\\
+& \theta^\mathrm{min} \le \theta \le \theta^\mathrm{max}.
+\end{array}
+\]
+<p>which is exactly problem &#40;1&#41; in the paper, in the special case where \(W = I\), the identity matrix.</p>
+<h3 id="deriving_the_dual">Deriving the dual</h3>
+<p>Here is essentially the only &#39;magic&#39; part of the paper. First, we can write the Lagrangian of the problem as,</p>
+\[
+\mathcal{L}(z, \theta, \nu) = \frac12\left\|z - \hat z\right\|_2^2 + \nu^T((A + \mathrm{diag}(\theta))z - b).
+\]
+<p>Now, there is something weird here: notice that I sneakily dropped the term containing the lower and upper limits for \(\theta\)—this idea is, in fact, what saves the entire approach. What we will first do is the usual thing: we&#39;ll minimize the Lagrangian over all possible \(z\), which we can easily do since the Lagrangian is a convex quadratic over \(z\). In particular, taking the gradient over \(z\) and setting it to zero &#40;which is necessary and sufficient by convexity and differentiability&#41; gives us that the optimal \(z\) is</p>
+\[
+z = \hat z - (A + \mathrm{diag(\theta)})^T\nu,
+\]
+<p>which means that</p>
+\[
+\inf_z \mathcal{L}(z, \theta, \nu) = - \frac12\left\|\hat z - (A + \mathrm{diag(\theta)})^T\nu\right\|_2^2 - \nu^Tb + \frac12\|\hat z\|_2^2.
+\]
+<p>The next step is then finding the infimum of \(\mathcal{L}\) over \(\theta\). That is, finding</p>
+\[
+\inf_\theta \left(\inf_z \mathcal{L}(z, \theta, \nu)\right).
+\]
+<p>Now, of course, minimization over all \(\theta\) is a lower bound &#40;but not a very good one&#41;, since, unless \(\nu = 0\), we can send the whole thing to negative infinity. &#40;Why?&#41;</p>
+<p>What we can do instead is minimize over \(\theta\), constrained to its feasible range, \(\theta^\mathrm{min} \le \theta \le \theta^\mathrm{max}\). I&#39;ll leave it as an exercise for the reader as to why this is still a lower bound, but you should ponder this very carefully, because it is the main point of the paper. As an initial hint, take a second look at the proof above for why the Lagrangian is a lower bound in the first place. Of course, a second hint can be found in the paper which gives a somewhat-natural construction &#40;sometimes called the &quot;partial Lagrangian&quot;&#41;, but I highly recommend sitting down with a bit of wine &#40;or something stronger&#41; and thinking about it&#33;<sup id="fnref:wine">[2]</sup></p>
+<p>If you&#39;ve convinced yourself of this &#40;or haven&#39;t yet, but want to continue&#41;, we now have the following minimization problem:</p>
+\[
+\begin{aligned}
+g(\nu) &= \inf_{\theta^\mathrm{min} \le \theta \le \theta^\mathrm{max}} \left(\inf_z \mathcal{L}(z, \theta, \nu)\right)\\
+&= \inf_{\theta^\mathrm{min} \le \theta \le \theta^\mathrm{max}} \left(- \frac12\left\|\hat z - (A + \mathrm{diag(\theta)})^T\nu\right\|_2^2 - \nu^Tb + \frac12\|\hat z\|_2^2\right)
+\end{aligned}
+\]
+<p>The trick is to notice two things. One, that the objective is concave in \(\theta\) and, two, that the objective is <em>separable</em> over each component of \(\theta\). </p>
+<p>First off, let&#39;s say a function \(v: \mathbb{R} \to \mathbb{R}\) is concave over the interval \([L, U]\), then it achieves its minimum value at the boundaries of the interval. Why? Well, the definition of concavity says, for every \(0 \le \gamma \le 1\),</p>
+\[
+v(\gamma L + (1- \gamma)U) \ge \gamma v(L) + (1-\gamma)v(U) \ge \min\{v(L), v(U)\}.
+\]
+<p>but any point in the interval \([L, U]\) is a convex combination of \(L\) or \(U\)&#33; So every point inside of the interval is at least as large as the smallest endpoint of the interval, which completes the proof.</p>
+<p>This solves our problem: since the objective is separable, then we only need to consider each component of \(\theta\), and, because it&#39;s concave, then we know that an optimal \(\theta_i\) is one of either \(\theta^\mathrm{min}_i\) or \(\theta^\mathrm{max}_i\). Replacing the complicated \(\inf\) with this &#40;much simpler&#41; \(\min\) gives the analytic solution for \(g\):</p>
+\[
+\begin{aligned}
+g(\nu) = \sum_i \min\bigg\{-\frac12 (\hat z_i - a_i^T\nu + \theta_i^\mathrm{min} \nu_i)^2, &- \frac12 (\hat z_i - a_i^T\nu + \theta_i^\mathrm{max} \nu_i)^2\bigg\} \\&- \nu^Tb + \frac12\|\hat z\|_2^2,
+\end{aligned}
+\]
+<p>or, writing it in the same way as the paper, by pulling out the \(-1/2\) &#40;and using \(\theta^\mathrm{min} = 0\)&#41;,</p>
+\[
+g(\nu) = -\frac12 \sum_i \max\bigg\{ (\hat z_i - a_i^T\nu + \nu_i)^2, (\hat z_i - a_i^T\nu + \theta_i^\mathrm{max} \nu_i)^2\bigg\} - \nu^Tb + \frac12\|\hat z\|_2^2.
+\]
+<p>Now that we have an analytic form for \(g\) &#40;our set of lower bounds&#41;, we can maximize the function to get the best lower bound. As discussed before, this is a convex optimization problem which can be formulated by <a href="https://www.cvxpy.org">CVXPY</a> and solved using one of the many available solvers for <a href="https://osqp.org">convex quadratically-constrained quadratic programs</a> &#40;QCQPs&#41; or <a href="https://www.embotech.com/ECOS">second-order conic programs</a> &#40;SOCPs&#41;.</p>
+<h2 id="results">Results</h2>
+<p>I&#39;ll give a quick summary of the results of the paper, but this is the section I would recommend checking out in the paper itself. &#40;There are pretty pictures&#33;&#41;</p>
+<p>For a relatively complex design, we found that a simple, commonly used heuristic finds a design with an objective value lying around 9&#37; above the lower bound, and, therefore has objective value at most 9&#37; above the <em>best possible</em> design. &#40;In general, though, we suspect that the true optimum lies closer to the designs that the heuristics give than the lower bound we come up with.&#41; In other words, it is physically impossible to more-than-marginally improve upon this design.</p>
+<p>Additionally &#40;I might discuss how this is done in a later post&#41;, we receive an initial design that is qualitatively quite similar to the final, locally-optimized design. See the image below.</p>
+<p>&lt;img src&#61;&quot;/images/physics-impossibility-results/primal-dual-comparison.png&quot; class&#61;&quot;insert&quot; style&#61;&quot;width: 100&#37;&quot;&gt; <em>Comparison between the design suggested by the lower bound and the locally-optimized design.</em></p>
+<p>I highly recommend checking out the <a href="https://arxiv.org/abs/1811.12936">pre-print that is up on arXiv</a> for more info. Also, if you spot any mistakes &#40;in either the post or the paper&#41;, please do @ me&#33;</p>
+<p><table class="fndef" id="fndef:maxwell">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">This is... almost accurate, but not quite. It turns out a small modification to the problem is needed for Maxwell&#39;s equations in two and three dimensions. For specifics, see the appendix in the paper.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:wine">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content">Honestly, I <em>only</em> recommend reading this blog with wine &#40;or whatever you have at hand&#41;. Not sure it&#39;s bearable, otherwise.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Mon, 17 Dec 2018 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Markov processes and the second law  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/second-law-markov/index.html </link>
+  <guid> https://angeris.github.io/blog/content/second-law-markov/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p><em>Note:</em> This is another one of those &quot;quick&quot; posts about a topic I&#39;ve found to be fascinating, but which is almost never discussed.</p>
+<p>Physics has this nice little law called the <a href="https://en.wikipedia.org/wiki/Second_law_of_thermodynamics">second law of thermodynamics</a>, which governs every physical thermodynamical system in question. The second law is usually phrased as the nice quote &quot;everything tends to disorder,&quot; or some other variation thereof which sounds intuitive but is as opaque as a concrete wall when applied in practice.</p>
+<p>As usual, I won&#39;t really touch this or other similar discussions with a 10 foot pole &#40;though <a href="https://plato.stanford.edu/entries/time-thermo/">here</a> is a good place to start&#41;, but I&#39;ll be giving some thoughts on a similar mathematical principle which arises from statistical systems.</p>
+<h2 id="markov_chains">Markov chains</h2>
+<p>Since this is a short post, I won&#39;t be describing <a href="https://en.wikipedia.org/wiki/Markov_chain">Markov chains</a> in detail, but as a refresher, a Markov chain &#40;or Markov process&#41; is a process in which the next state of the process depends only on the current state. In other words, it&#39;s a little like the game <a href="https://en.wikipedia.org/wiki/Snakes_and_Ladders">Snakes and Ladders</a>, where your next position depends only on where you are in the current square and your next dice throw &#40;independent of it being the 1st or 5th time you&#39;ve landed on the same square&#41;.</p>
+<p>In particular, we know probability of being at a new square, \(x_{t+1}\) at time \(t+1\), given that we were in square \(x_t\) at time \(t\). In other words, we know \(p(X_{t+1}=x~|~X_{t}=x')\). Similarly, if we weren&#39;t sure of our position at time \(t\), but rather we have a probability distribution over positions, say \(p(X_t = x)\) &#40;which I will call \(p_t(x)\), for convenience&#41;, then the probability of being at position \(x\) at time \(t+1\) given our belief about possible positions, \(x'\) at time \(t\) is</p>
+\[
+p_{t+1}(x) = \sum_{x'} p(X_{t+1}=x~|~X_{t}=x')p_t(x').\tag{1}
+\]
+<p>In other words, we just multiply these two probabilities and sum over all possible states \(x'\) at time \(t\). The defining trait of &#40;stationary&#41; Markov processes is that \(p(X_{t+1}=x~|~X_{t}=x')\), which I will call \(K(x, x')\) from now on, is the <em>same</em> for all \(t\), and equation &#40;1&#41;, now written as</p>
+\[
+p_{t+1}(x) = \sum_{x'} K(x, x')p_t(x),
+\]
+<p>holds for any \(t\).</p>
+<p>It&#39;s probably not hard to believe that Markov chains are used <a href="https://www.cs.cmu.edu/~katef/DeepRLControlCourse/lectures/lecture2_mdps.pdf">absolutely</a> <a href="https://twitter.com/captain_markov?lang&#61;en">everywhere</a>, since they make for mathematically simple, but surprisingly powerful models of,  well, everything.</p>
+<p>This is all I will mention about Markov chains, in general. If you&#39;d like a bit of a deeper dive, <a href="http://setosa.io/ev/markov-chains/">this blog post</a> is a beautiful &#40;and interactive&#33;&#41; reference. I highly recommend it.</p>
+<h2 id="a_variation_on_a_theme">A variation on a theme</h2>
+<p>Let \(p_t\) be the distribution of a process at time \(t\), then the second law says that &#40;and I will use statistics notation, rather than physics notation, from here on out&#33;&#41;,</p>
+\[
+H(p_t) \equiv -\sum_x p_t(x) \log p_t(x),
+\]
+<p>is non-decreasing as time, \(t\), increases. Note that I&#39;ll be dealing with discrete time and space here, but all of these statements with some modifications hold for continuous processes. Anyways, more generally, we can write</p>
+\[
+H(p_{t+1}) \ge H(p_t),
+\]
+<p>but it turns out this law, as stated, doesn&#39;t quite hold for many Markov processes. It does, on the other hand, hold for a set of processes where the transition probabilities are symmetric &#40;more generally, this holds iff the transitions are doubly-stochastic. <a href="https://pdfs.semanticscholar.org/332c/1c7bab1a9a7a43d34d5a1784cf2454e0a7f1.pdf">Cover</a> has a slick, few-line proof of this which relies on some properties of the KL-divergence&#41;.</p>
+<p>In this case, the probability of going from state \(A\) to state \(B\) is the same as the probability of going from state \(B\) to state \(A\). Writing this out mathematically, it says:</p>
+\[
+K(x, x') = K(x', x).
+\]
+<p>I should note that this is a <em>very</em> strong condition, but it can be quite useful in giving a simple proof of the above law. To prove this, first note that the KL-divergence is nonnegative, since the negative log is convex, thus by <a href="https://en.wikipedia.org/wiki/Jensen&#39;s_inequality">Jensen&#39;s inequality</a> &#40;this is the same proof as the <a href="https://angeris.github.io/blog/ml-information-bounds.html">previous post</a>&#41;:</p>
+\[
+\begin{aligned}
+D(p_t\lVert p_{t'})&=-\sum_x p_t(x) \log \frac{p_{t'}(x)}{p_t(x)} \\
+&\ge -\log\left(\sum_x p_t(x)\frac{p_{t'}(x)}{p_t(x)}\right) \\
+&= -\log\left(\sum_x p_{t'}(x)\right) \\
+& = -\log 1 \\
+&= 0,
+\end{aligned}
+\]
+<p>since \(p_{t'}, p_t\) are probability distributions &#40;i.e., nonnegative and sum to one&#41;.</p>
+<p>Here is the magical trick to proving the above. Note that</p>
+\[
+D(p_t \lVert p_{t+2}) \ge 0,
+\]
+<p>so</p>
+\[
+-\sum_x p_t(x) \log \frac{p_{t+2}(x)}{p_t(x)} \ge 0,
+\]
+<p>which means</p>
+\[
+-\sum_x p_t(x) \log p_{t+2}(x) \ge -\sum_x p_t(x) \log p_t(x).
+\]
+<p>But, by definition, we have that</p>
+\[
+p_{t+2}(x) = \sum_{x'}K(x, x')p_{t+1}(x'),
+\]
+<p>so</p>
+\[
+-\sum_x p_t(x) \log \left(\sum_{x'} K(x, x')p_{t+1}(x')\right) \ge -\sum_x p_t(x) \log p_t(x),
+\]
+<p>but, by Jensen&#39;s inequality &#40;again&#33;&#41; on the left hand side we get,</p>
+\[
+-\sum_x p_t(x) \log \left(\sum_{x'} K(x, x')p_{t+1}(x')\right) \le -\sum_{x, x'} p_t(x)K(x, x') \log p_{t+1}(x').
+\]
+<p>Since we know \(K(x, x') = K(x', x)\), then we immediately have that</p>
+\[
+\sum_x p_t(x)K(x, x') = p_{t+1}(x'),
+\]
+<p>so, putting it all together</p>
+\[
+\begin{aligned}
+H(p_{t+1}) &= -\sum_{x'} p_{t+1}(x') \log p_{t+1}(x') \\
+&= -\sum_{x, x'} p_t(x)K(x, x') \log p_{t+1}(x')\\
+&\ge -\sum_x p_t(x) \log p_t(x) \\
+&= H(p_t),
+\end{aligned}
+\]
+<p>which is what we wished to prove.</p>
+<h2 id="more_general_markov_processes">More general Markov processes</h2>
+<p>So, while it turns out this law doesn&#39;t hold for general Markov processes, a very similar law <em>does</em> hold. If a Markov process has a stationary distribution, \(p\), then:</p>
+\[
+D(p_{t+1}\lVert p) \le D(p_t \lVert p),
+\]
+<p>so, as the Markov chain continues evolving, the KL divergence between the current distribution and the equilibrium distribution <em>never decreases</em>.</p>
+<p>In fact, more generally, for <em>any</em> two initial probability distributions \(p_0, q_0\), we have that</p>
+\[
+D(p_{t+1} \lVert q_{t+1}) \le D(p_{t} \lVert q_{t}),
+\]
+<p>so any two distributions undergoing the same &#40;Markovian&#41; dynamics never decrease in KL-divergence&#33; Even if the Markov process does <em>not</em> have a unique stationary distribution, there is still a type of second law which holds, in a very general sense.</p>
+<p>As before, <a href="https://pdfs.semanticscholar.org/332c/1c7bab1a9a7a43d34d5a1784cf2454e0a7f1.pdf">Cover</a> has a fantastic, slick proof of the above, which I highly recommend you read&#33;</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Thu, 13 Sep 2018 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Machine learning, information, and tail bounds  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/information-theory-ml/index.html </link>
+  <guid> https://angeris.github.io/blog/content/information-theory-ml/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>Usually, in explaining the connection between information theory and machine learning, I would begin by writing down the definition of entropy and deriving some useful results about it, and then come back to tell you that you can look at ML as an information problem, where nature picks some parameters and &#39;communicates them&#39; through a noisy channel &#40;e.g. via samples from some distribution or some other stochastic process&#41;, which you then have to infer &#40;i.e., decode&#41;. While this approach is common, my explanations are likely to be far worse than <a href="http://www.cs.cmu.edu/~aarti/Class/10704_Spring15/lecs.html">the</a> <a href="https://www.princeton.edu/~eabbe/publications/tuto_slides_part1.pdf">many</a> <a href="http://www.inference.org.uk/itprnn/book.pdf">available</a> <a href="https://web.stanford.edu/~montanar/RESEARCH/book.html">texts</a>. So I&#39;ll try to do something mildly differently &#40;and perhaps a bit backwards&#41; and hope it&#39;s at least somewhat entertaining and, ideally, do it all without assuming much more than some comfort with statistics &#40;e.g. the <a href="https://en.wikipedia.org/wiki/Law_of_large_numbers#Weak_law">weak law</a> and <a href="https://en.wikipedia.org/wiki/Markov&#37;27s_inequality">Markov&#39;s inequality</a>&#41;.</p>
+<h2 id="maximum-likelihood_and_kl-divergence">Maximum-likelihood and KL-divergence</h2>
+<p>The maximum-likelihood estimator &#40;MLE&#41; is probably the simplest estimator, if you have a probability distribution \(p(x|\theta)\) which models your data. In this case we try to pick the hypothesis \(\theta\) which makes our observed data the most likely. In other words, we want to solve the optimization problem:</p>
+\[
+\theta^\mathrm{MLE} = \underset{\theta}{\operatorname{argmax}}~~p(x~|~\theta).
+\]
+<p>While this framework is quite general, we&#39;ll prove that this estimator is <a href="https://en.wikipedia.org/wiki/Consistent_estimator">consistent</a> in the case where our data points, \(x = \{x^i\}\), are all independently drawn from \(p(\cdot ~|~ \theta^*)\), where \(\theta^*\) is the &quot;true&quot; hypothesis. In other words, when</p>
+\[
+p(x~|~\theta) = \prod_i p(x^i~|~\theta)
+\]
+<p>The proof that this estimator is consistent is relatively simple and assumes only the <a href="https://en.wikipedia.org/wiki/Law_of_large_numbers#Weak_law">weak law of large numbers</a>, which says that the empirical mean of a bunch of i.i.d variables \(\{Y_i\}\) converges<sup id="fnref:inprobability">[1]</sup> to its expectation</p>
+\[
+\frac{1}{n}\sum_i Y_i \overset{p}{\to} \mathbb{E}[Y_1].
+\]
+<p>&#40;from here on out, I will write &#39;converges in probability&#39; just as \(\to\), instead of \(\overset{p}{\to}\)&#41;.</p>
+<p>First, note that<sup id="fnref:trick">[2]</sup></p>
+\[
+\underset{\theta}{\operatorname{argmax}}\left(\prod_i p(x^i~|~\theta)\right) = \underset{\theta}{\operatorname{argmax}}\left(\log \left(\prod_i p(x^i~|~\theta)\right)\right),
+\]
+<p>since \(0 < x \le y \iff \log(x) \le \log(y)\) &#40;i.e. \(\log\) is monotonic<sup id="fnref:monotonicity">[3]</sup>, so it preserves any maximum or minimum&#41;. We also have</p>
+\[
+\log \left(\prod_i p(x^i~|~\theta)\right) = \sum_i \log p(x^i ~|~ \theta),
+\]
+<p>and now we need some way of comparing the current hypothesis \(\theta\), with the true hypothesis \(\theta^*\). The simplest way is to subtract one from the other and show that the difference is less than zero whenever \(\theta \ne \theta^*\), so this is what we will do.<sup id="fnref:sneaky">[4]</sup> In particular:</p>
+\[
+\sum_i \log p(x^i~|~\theta) - \sum_i \log p(x^i~|~\theta^*) = \sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right).
+\]
+<p>If we can prove the quantity above is negative with high probability, then we&#39;re set&#33; So divide by \(n\) on both sides and note that, by the weak law, we have</p>
+\[
+\frac{1}{n}\sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \to \mathbb{E}_{X}\left(\log\left(\frac{p(X~|~\theta)}{p(X~|~\theta^*)}\right)\right).
+\]
+<p>&#40;the expectation here is taken with respect to the true distribution \(p(\cdot ~|~\theta^*)\)&#41;. Now, \(\log(x)\) is a concave function &#40;proof: take the second derivative and note that it&#39;s always negative&#41;, so, this means that</p>
+\[
+\mathbb{E}(\log(Y)) \le \log(\mathbb{E}(Y)),
+\]
+<p>for any random variable \(Y\) &#40;this is <a href="https://en.wikipedia.org/wiki/Jensen&#37;27s_inequality">Jensen&#39;s inequality</a>&#41;. In fact, in this case, equality can only happen if \(Y\) takes on a single value, so in general, we have</p>
+\[
+\mathbb{E}(\log(Y)) < \log(\mathbb{E}(Y)).
+\]
+<p>Applying this inequality to the previous line is the only magical part of the proof, which gives us</p>
+\[
+\begin{aligned}
+\mathbb{E}_{X}\left(\log\left(\frac{p(X~|~\theta)}{p(X~|~\theta^*)}\right)\right) &< \log\mathbb{E}_{X}\left(\frac{p(X~|~\theta)}{p(X~|~\theta^*)}\right) \\
+&= \log \int_S p(X~|~\theta^*)\frac{p(X~|~\theta)}{p(X~|~\theta^*)}~dX\\
+&= \log \int_S p(X~|~\theta)~dX\\
+&= \log 1\\
+&= 0.
+\end{aligned}
+\]
+<p>So, as \(n \uparrow\infty\), we find that</p>
+\[
+\frac{1}{n}\sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) < 0
+\]
+<p>or, multiplying by \(n\) and rearranging,</p>
+\[
+\sum_i \log p(x^i~|~\theta) < \sum_i \log p(x^i~|~\theta^*)
+\]
+<p>with high probability. So, any point which is not \(\theta^*\) will have a lower likelihood than \(\theta^*\).<sup id="fnref:immediatebounds">[5]</sup></p>
+<h2 id="tail_bounds_on_information">Tail bounds on information</h2>
+<p>The next question, of course, is how many samples do we need to actually guess the right hypothesis? There are several ways of attacking this question, but let&#39;s start with a basic one: what is the probability that a wrong &#40;empirical&#41; likelihood is actually better than the true empirical likelihood? In other words, can we give an upper bound on</p>
+\[
+P\left(\prod_i p(x^i~|~\theta) \ge \prod_i p(x^i~|~\theta^*)\right)
+\]
+<p>that depends on some simple, known quantities? Applying <a href="https://en.wikipedia.org/wiki/Markov&#37;27s_inequality">Markov&#39;s inequality</a> directly yields the trivial result</p>
+\[
+P\left(\prod_i \frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)} \ge 1\right) \le \mathbb{E}_x\left(\prod_i \frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) = 1,
+\]
+<p>that the probability is at most 1. So where do we go from here? Well, as before, we can turn the product into a sum by taking the log of both sides and dividing by \(n\) &#40;déjà vu, anyone?&#41;,</p>
+\[
+P\left(\prod_i \frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)} \ge 1\right) = P\left(\frac1n\sum_i \log\left( \frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \ge 0\right).
+\]
+<p>Here, we can weaken the question a little bit by asking: how likely is it that our wrong hypothesis has a higher log-likelihood than the right one <em>by any amount</em>, \(\varepsilon > 0\). In other words, let&#39;s give a bound on</p>
+\[
+P\left(\frac1n\sum_i \log\left( \frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \ge \varepsilon\right).
+\]
+<p>Here comes a little bit of magic, but this is a general method in what are known as Chernoff bounds. It&#39;s a good technique to keep in your toolbox if you haven&#39;t quite seen it before&#33;</p>
+<p>Anyways, since \(\log\) is a monotonic function, note that \(\exp\) &#40;its inverse&#41; is also monotonic, so,</p>
+\[
+P\left(\frac{1}{n}\sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \ge \varepsilon\right) = P\left(\exp\left\{\sum_i \log\left( \frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right)\right\} \ge e^{n\varepsilon}\right),
+\]
+<p>and applying Markov&#39;s inequality to the right-hand-side yields</p>
+\[
+P\left(\exp\left\{\sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right)\right\} \ge e^{n\varepsilon}\right) \le e^{-n\varepsilon},
+\]
+<p>so as the number of samples increases, our wrong hypothesis becomes exponentially unlikely to exceed the true hypothesis by more than \(\varepsilon\).</p>
+<p>Of course, at any point in this proof, we could&#39;ve multiplied both sides of the inequality by \(\lambda > 0\) and everything would&#39;ve remained true, but note that then we would have a bound</p>
+\[
+P\left(\frac1n\sum_i \log\left( \frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \ge \varepsilon\right) \le \mathbb{E}_X\left[\left(\frac{p(X ~|~ \theta)}{p(X~|~\theta^*)}\right)^\lambda\right]~ e^{-\lambda n\varepsilon},
+\]
+<p>which looks almost nice, except that we have no control over the tails of </p>
+\[
+\left(\frac{p(X ~|~ \theta)}{p(X~|~\theta^*)}\right)^\lambda,
+\]
+<p>since at no point have we assumed anything about the dependence of \(p\) on \(\theta\) or \(X\) &#40;apart from it being a correct probability distribution&#41;. More generally speaking, given \(\lambda \ne 0, 1\), we can find a function such that this quantity blows up &#40;exercise for the reader&#33;&#41;, which makes our bound trivial.</p>
+<p>It is possible to make some assumptions about how these tails behave, but it&#39;s not entirely clear that these assumptions would be natural or useful. If anyone has further thoughts on this, I&#39;d love to hear them&#33;</p>
+<h2 id="on_fisher_information_and_lower-bounds">On Fisher Information and Lower-Bounds</h2>
+<p>The second set of lower-bounds that are easy to derive and are surprisingly useful are the Cramér-Rao bounds on estimators. In particular, we can show that, for any estimator \(\hat \theta\) whose expectation is \(\mathbb{E}(\hat \theta) = \psi(\theta)\), with underlying probability distribution \(p(\cdot~|~\theta)\), then<sup id="fnref:dimensions">[6]</sup></p>
+\[
+\operatorname{Var}(\theta) \ge \frac{[\psi ' (\theta)]^2}{I(\theta)},
+\]
+<p>where \(I(\theta) \ge 0\) is the Fisher information of \(p(\cdot~|~\theta)\), which is something like the local curvature of \(\log p(\cdot~|~\theta)\) around \(\theta\). In particular, it is defined as</p>
+\[
+I(\theta) = -\mathbb{E}_X\left(\frac{\partial^2 \log p(X~|~\theta)}{\partial \theta^2}\right).
+\]
+<p>In other words, the inequality says that, the more flat \(\log p\) is at \(\theta\), the harder it is to correctly guess the right parameter. This makes sense, since the flatter the distribution is at this point, the harder it is for us to distinguish it from points around it.</p>
+<p>I&#39;ll give a simple proof of this statement soon &#40;in another post, since this one has become quite a bit longer than expected&#41;, but, to see why this makes sense, let&#39;s go back to the original proof of the consistency of the MLE estimator for a given probability distribution. Note that assuming that \(\psi(\theta) = \theta\) then gives us bounds on the variance of an unbiased estimator of \(\theta\).</p>
+<p>At one point we used the fact that</p>
+\[
+\frac{1}{n}\sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \to \mathbb{E}_{X}\left(\log\left(\frac{p(X~|~\theta)}{p(X~|~\theta^*)}\right)\right) \equiv -D(\theta ~\Vert~\theta^*) \le 0.
+\]
+<p>This quantity on the right is called the <a href="https://en.wikipedia.org/wiki/Kullback–Leibler_divergence">KL-divergence</a>, and it has some very nice information-theoretic interpretations, which I highly recommend you read about, but which I will not get into here. Anyways, assuming that \(\theta\) is close to \(\theta^*\), we can do a Taylor expansion around the true parameter \(\theta^*\) to find</p>
+\[
+\frac{1}{n}\sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \approx \frac{1}{n}\sum_i \left(\underbrace{\log\left(\frac{p(x^i~|~\theta^*)}{p(x^i~|~\theta^*)}\right)}_{=0} + (\theta - \theta^*)\frac{\partial_\theta p(\cdot ~|~\theta^*)}{p(\cdot ~|~ \theta^*)} + \dots\right)
+\]
+<p>and the quantity on the right hand side goes to, as \(n\uparrow \infty\),</p>
+\[
+\begin{aligned}
+\frac{1}{n}\sum_i \left((\theta - \theta^*)\frac{\partial_\theta p(\cdot ~|~\theta^*)}{p(\cdot ~|~ \theta^*)} + O((\theta - \theta^*)^2)\right) &\to (\theta - \theta^*)\mathbb{E}_X\left(\frac{\partial_\theta p(X ~|~\theta^*)}{p(X ~|~ \theta^*)}\right) \\
+&= (\theta - \theta^*)\int_S \frac{\partial_\theta p(X~|~\theta^*)}{p(X~|~\theta^*)}p(X~|~\theta^*)~dX\\
+&=(\theta - \theta^*)\int_S \partial_\theta p(X~|~\theta^*)~dX\\
+&=(\theta - \theta^*)\partial_\theta\left(\int_S p(X~|~\theta^*)~dX\right)\\
+&= (\theta - \theta^*)\partial_\theta (1)\\
+&= 0
+\end{aligned}
+\]
+<p>...zero?&#33;<sup id="fnref:dominatedconvergence">[7]</sup> Well, the expectation of the first derivative of the log-likelihood vanishes, so taking the second term in the Taylor expansion yields</p>
+\[
+\frac{1}{2}(\theta - \theta^*)^2\mathbb{E}_X\left(\partial_\theta^2 \log(p(X~|~\theta^*)\right)) = -\frac12(\theta - \theta^*)^2I(\theta^*).
+\]
+<p>Putting it all together, we have that</p>
+\[
+\frac{1}{n}\sum_i \log\left(\frac{p(x^i~|~\theta)}{p(x^i~|~\theta^*)}\right) \to -D(\theta \Vert \theta^*) \approx -\frac12(\theta - \theta^*)^2I(\theta^*) + O((\theta - \theta^*)^3),
+\]
+<p>or that the curvature of the KL-divergence around \(\theta^*\) is the Fisher information&#33; In this case, it shouldn&#39;t be entirely surprising that there is some connection between how well we can measure a parameter&#39;s value and the Fisher information of that parameter, since the likelihood&#39;s noise around that parameter is given by the Fisher information.</p>
+<p>On the other hand, I haven&#39;t been able to find a direct proof of the above bound &#40;or, even, any other nice bounds&#41; given <em>only</em> the above observation. So, while the connection might make sense, it turns out the proof of the Cramér-Rao bound uses a slightly different technique, which I will present later &#40;along with some other fun results&#33;&#41;.</p>
+<p><table class="fndef" id="fndef:inprobability">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">In probability. I.e., the probability that the empirical mean differs from the expectation by some amount, \(\left|\frac{1}{n}\sum_i Y_i - \mathbb{E}[Y_1]\right| > \varepsilon\), goes to zero as \(n\uparrow \infty\). A simple proof in the finite-variance case follows from Chebyshev&#39;s inequality &#40;exercise for the reader&#33;&#41;.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:trick">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content">It&#39;s often easier to deal with log-probabilities than it is to deal with probabilities, so this trick is relatively common.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:monotonicity">
+    <tr>
+        <td class="fndef-backref">[3]</td>
+        <td class="fndef-content">In fact, the logarithm is <em>strictly</em> monotonic, so it preserves minima uniquely. In other words, for any function \(\phi: S\to \mathbb{R}^{> 0}\), \(\phi\) and \(\log \circ\, \phi\) have minima and maxima at exactly the same points.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:sneaky">
+    <tr>
+        <td class="fndef-backref">[4]</td>
+        <td class="fndef-content">I am, of course, being sneaky: the subtraction <em>happens</em> to work since this just <em>happens</em> to yield the KL-divergence in expectation—but that&#39;s how it goes. Additionally, the requirement really is not that \(\theta \ne \theta^*\), but rather that \(p(x~|~\theta^*) \ne p(x~|~\theta)\), just in case there happen to be multiple hypotheses with equivalent distributions. Since you&#39;re reading this then just assume throughout that \(p(\cdot~|~\theta) \ne p(\cdot~|~\theta^*)\) on some set with nonzero probability &#40;in the base distribution&#41; whenever \(\theta \ne \theta^*\).</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:immediatebounds">
+    <tr>
+        <td class="fndef-backref">[5]</td>
+        <td class="fndef-content">While it may seem that there should be easy bounds to give immediately based on this proof, the problem is that we do <em>not</em> have good control of the second moment of \(\log(p(\cdot~|~\theta^*)/p(\cdot~|~\theta))\) &#40;this quantity may not even converge in a nice way&#41;. This makes giving any kind of convergence rate quite difficult, since the proof of the weak law given only a first-moment guarantee uses the dominated convergence theorem to give non-constructive bounds.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:dimensions">
+    <tr>
+        <td class="fndef-backref">[6]</td>
+        <td class="fndef-content">This is a derivation of the one-dimensional case, but the \(n\)-dimensional case is almost identical.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:dominatedconvergence">
+    <tr>
+        <td class="fndef-backref">[7]</td>
+        <td class="fndef-content">All I will say about changing the derivative and integral around is that it is well-justified by dominated convergence.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Tue, 04 Sep 2018 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  PCA as a convex optimization problem  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/pca-convex/index.html </link>
+  <guid> https://angeris.github.io/blog/content/pca-convex/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>It&#39;s been a while since I last posted &#40;my posting has been less once every two weeks and more like once every two months&#41;, but here&#39;s a post I&#39;ve been sitting on for a while that I never got around to finishing. As per <a href="https://rachelbythebay.com/w/2018/03/13/write/">rachelbythebay&#39;s advice</a>, I decided to just finish it and post it up. It&#39;s likely to be a little rough, but feel free to <a href="https://twitter.com/GuilleAngeris">tweet</a> any questions or things that you&#39;d like more fleshed out &#40;as usual&#33;&#41;.</p>
+<h2 id="quick_introduction_to_pca">Quick introduction to PCA</h2>
+<p>Most people know <a href="https://en.wikipedia.org/wiki/Principal_component_analysis">Principal Component Analysis</a> &#40;PCA&#41; as a fast, and easily-scalable dimensionality-reduction technique used quite frequently in machine learning and data exploration—in fact, it&#39;s often mentioned that one-layer, linear neural network<sup id="fnref:losstype">[1]</sup> applied on some data-set recovers the result from PCA.</p>
+<p>It&#39;s &#40;also&#41; often mentioned that PCA is one of the <a href="https://groups.google.com/forum/#&#33;topic/10725-f12/P9e8BsqaAok">few non-convex problems that we can solve efficiently</a>, though a &#40;let&#39;s say &#39;non-constructive&#39;&#41; answer showing this problem is convex is given in <a href="https://stats.stackexchange.com/questions/301532/is-pca-optimization-convex">this Stats.SE thread</a>, which requires knowing the eigenvectors of \(X^TX\), a priori. It turns out it&#39;s possible to create a fairly natural semi-definite program which actually constructs the solution in its entirety.</p>
+<p>Since I&#39;ll only give a short overview of the topic of PCA itself, I won&#39;t go too much into depth on methods of solving this. But, the general idea of PCA is to find the best low-rank approximation of a given matrix \(A\). In other words, we want, for some given \(k\):</p>
+\[
+\begin{aligned}
+& \underset{X}{\text{minimize}}
+& & \| A - X \|_F^2  \\
+& \text{subject to}
+& & \text{rank}(X) = k,
+\end{aligned}
+\]
+<p>where \(\| B \|_F^2\) is the square of the Frobenius norm of \(B\) &#40;i.e. it is the sum of the squares of each entry of \(B\)&#41;. Why is this useful? Well, in the general formulation, we can write the SVD decomposition of some optimal \(X^* \in \mathbb{R}^{m\times n}\),</p>
+\[
+X^* = U^*\Sigma^* (V^*)^T
+\]
+<p>with orthogonal \(U^* \in \mathbb{R}^{m\times k}, V^*\in \mathbb{R}^{n\times k}\) and diagonal \(\Sigma^* \in \mathbb{R}^{k\times k}\). Then the columns of \(V^*\) represent the \(k\) most important features of \(A\) &#40;assuming that each row of \(A\) is a point of the dataset&#41;. This may seem slightly redundant if you already know the punchline, but we&#39;ll get there in a second. </p>
+<p>For now, define the SVD of \(A\) in a similar way to the above</p>
+\[
+A = U\Sigma V^T.
+\]
+<p>with orthogonal \(U, V\) and diagonal \(\Sigma\).</p>
+<p>For convenience, it&#39;s easiest to define the diagonal of \(\Sigma\) &#40;the singular values of \(A\)&#41; to be sorted with the top-left value being the largest and bottom-right value being the smallest. Then let \(U_k\) be the matrix which contains only the first \(k\) columns of \(U\) &#40;and similarly for \(V_k\)&#41;, while \(\Sigma_k\) is the \(k\) by \(k\)  diagonal sub-matrix of \(\Sigma\) containing only the first \(k\) values of the diagonal &#40;as usual, starting from the top left&#41;.</p>
+<p>Now we can get to the punchline I was talking about earlier: it turns out that the SVD of \(X^*\) is the <em>truncated</em> SVD of \(A\), in other words, if the SVD of \(A\) is \(U\Sigma V^T\), then the optimal solution is</p>
+\[
+X^* = U_k\Sigma_kV_k^T.
+\]
+<p>This is the usual way of computing the PCA decomposition of \(A\): simply take the SVD and then look at the first \(k\) columns of \(V\).<sup id="fnref:truncatedsvd">[2]</sup> We&#39;ll make use of this fact to show that the optimal values are equal, but it won&#39;t be necessary to actually <em>compute</em> the result.</p>
+<h2 id="construction_of_the_sdp">Construction of the SDP</h2>
+<p>In general, semi-definite programs &#40;i.e. optimization over symmetric, positive-semidefinite matrices with convex objectives and constraints&#41; are convex problems. Here, we&#39;ll construct a &#40;relatively&#41; simple reduction of the non-convex problem of PCA, as presented above, to the SDP.</p>
+<h3 id="quick_overview_of_method">Quick overview of method</h3>
+<p>This entire idea was interesting to me, since it was mentioned in <a href="http://www.stat.cmu.edu/~ryantibs/convexopt-S15/scribes/26-nonconvex-scribed.pdf">this lecture</a> which was a result I didn&#39;t know about. There aren&#39;t any complete proofs of this online, other than a quick mention in <a href="https://papers.nips.cc/paper/5136-fantope-projection-and-selection-a-near-optimal-convex-relaxation-of-sparse-pca">Vu, et al. &#40;2013&#41;</a>, though it&#39;s not hard to show the final result given the general ideas. I highly encourage you to try the proof out after reading only the main ideas, if you&#39;re interested&#33;</p>
+<p>First, we&#39;ll start with the usual program, call it <em>program Y</em>:</p>
+\[
+\begin{aligned}
+& \underset{X}{\text{minimize}}
+& & \| A - X \|_F^2  \\
+& \text{subject to}
+& & \text{rank}(X) = k,
+\end{aligned}
+\]
+<p>and construct the equivalent program &#40;this step can be skipped with a cute trick below&#41;, with \(F = A^TA\),</p>
+\[
+\begin{aligned}
+& \underset{P}{\text{minimize}}
+& & \| F - P \|_F^2  \\
+& \text{subject to}
+& & \text{rank}(P) = k,\\
+&&& P^2 = P,\\
+&&& P^T = P,
+\end{aligned}
+\]
+<p>in other words, this is a program over projection matrices \(P\). This can then be put into the form</p>
+\[
+\begin{aligned}
+& \underset{P}{\text{maximize}}
+& & \text{tr}(FP)  \\
+& \text{subject to}
+& & \text{rank}(P) = k,\\
+&&& P^2 = P,\\
+&&& P^T = P.
+\end{aligned}
+\]
+<p>for some matrix \(F\), and it can be relaxed into the following SDP, let&#39;s call it <em>problem Z</em>,</p>
+\[
+\begin{aligned}
+& \underset{P}{\text{maximize}}
+& & \text{tr}(FP)  \\
+& \text{subject to}
+& & \text{tr}(P) = k,\\
+&&& 0\preceq P \preceq I,
+\end{aligned}
+\]
+<p>where \(A \preceq B\) is an inequality with respect to the semi-definite cone &#40;i.e. \(A \preceq B \iff B - A\) is positive semi-definite&#41;. You can then show that this SDP has <em>zero integrality gap</em> with the above program over the projection matrices. More specifically, any solution to the relaxation can be easily turned into a solution of the original program.</p>
+<p>Just a random side-note: if you took or followed Stanford&#39;s EE364A course for the previous quarter &#40;Winter 2018&#41;, the latter part of this proof idea may seem familiar—it was a problem written for the final exam. My original intent with it was to guide the students through the complete proof, but better judgement prevailed and the question was cut down to only that last part with some hints.</p>
+<h2 id="complete_if_somewhat_short_steps">Complete &#40;if somewhat short&#33;&#41; steps</h2>
+<p>The two interesting points of the whole proof are &#40;a&#41; to realize that any solution of the original problem &#40;program Y&#41; can be written as a solution \(X = AP'\) for some projection matrix \(P'\) &#40;which, of course, will turn out to be the projection matrix \(P\) which solves program Z, namely \(P' = V_kV_k^T\)&#41;, and &#40;b&#41; to note that we can prove that program Z has zero integrality gap since, if we have a solution to the SDP given by \(P^* = UDU^T\), then we can &#39;fix&#39; non-integral eigenvalues via solving the problem</p>
+\[
+\begin{aligned}
+& \underset{x}{\text{maximize}}
+& & c^Tx  \\
+& \text{subject to}
+& & 1^Tx = k,\\
+&&& 0\le x_i \le 1, ~~\forall i,
+\end{aligned}
+\]
+<p>where \(c_i = (U^TAU)_{ii}\). This LP has an integral solution \(x^*\) &#40;what should this solution be?&#41; which preserves the objective value of the original problem, so \(\bar P^* = U\text{diag}(x^*)U^T\) is a feasible, integral solution to the original problem, with the same objective value as the previous so the SDP relaxation is tight&#33;</p>
+<p>Using all of this, then we&#39;ve converted the PCA problem into a purely convex one, without computing the actual solution beforehand.</p>
+<p><table class="fndef" id="fndef:losstype">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">More specifically, a one-layer, linear NN with \(\ell_2\) loss.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:truncatedsvd">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content">As usual, there are smarter ways of doing this. It turns out one can run a truncated or partial SVD decomposition, which doesn&#39;t require constructing all singular values and all the columns of \(U, V\). This is far more efficient whenever \(k\ll \min\{m, n\}\), where \(m,n\) are the dimensions of the data. This latter condition is usually the case for practical purposes.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Wed, 16 May 2018 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Fast shortest paths for time-varying graphs &#40;Part 4/?&#41;  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/path-optimization-4/index.html </link>
+  <guid> https://angeris.github.io/blog/content/path-optimization-4/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>This is the fourth post in a series of posts describing an approach to doing path-planning in real-time on a small, embedded compute board. This is yet another relatively standalone post which mostly describes how to generate a &#40;starting&#41; path used in the <a href="https://angeris.github.io/blog/path-optimization-thoughts2.html">second</a> and <a href="https://angeris.github.io/blog/path-optimization-thoughts.html">first</a> posts to generate a feasible, smooth path that can be followed by a fixed-wing UAV.</p>
+<p>For more background on the general optimization case, check out the posts above. In general, I won&#39;t be using much content from the previous three posts, so they&#39;re not necessary reading other than for context.</p>
+<h2 id="time-dependent_shortest_path_search">Time-dependent shortest path search</h2>
+<p>First, as before, it&#39;s reasonable to ask for a fast heuristic to discover paths on a graph which are &#39;feasible&#39; in a weak sense &#40;i.e. a path where the UAV does not crash against an obstacle whose trajectory is known&#41;. This solution is then relaxed into a continuous problem inro \(\mathbb{R}^2\) space and then optimized over. This latter trajectory is the one actually fed directly to the UAV controller and which is executed by the UAV. It should be noted that performing this weird relaxation is useful since it often takes quite a while for the algorithm to begin to converge to a feasible solution &#40;and often can run into numerical stability problems while trying to do so&#41;. Anyways, for more of the details, check out the first <a href="https://angeris.github.io/blog/path-optimization-thoughts.html">first</a> and <a href="https://angeris.github.io/blog/path-optimization-thoughts2.html">second</a> posts &#40;and the videos at the bottom, to observe the qualitative behavior&#41;.</p>
+<p>I should mention that, unlike the previous problems, there already exist some fun <a href="https://www.cs.ucsb.edu/~suri/psdir/soda11.pdf">results</a> on this notion of the shortest path &#40;including a poly-time \((1+\varepsilon)OPT\) approximation&#33;&#41;, but it&#39;s interesting enough to describe in a quick post anyways. In general, I assume no constraints on the possible curvature of a trajectory for this approximation, though it&#39;s straightforward include them in the general problem if the hit on run time performance isn&#39;t an issue.</p>
+<h3 id="definition">Definition</h3>
+<p>The problem set up is the following: let&#39;s say we have a family of graphs \(G_t\subseteq G\) parametrized by some time parameter \(t\in \mathbb{R}^{\ge 0}\), where \(G\) is the &#39;universal graph&#39;; in other words, every graph at every point in time is a subset of both edges and vertices of that graph. One idea for constructing this \(G\) is to set \(G = \bigcup_{t\in \mathbb{R}^{\ge 0}} G_t\) and insist that \(G\) be a finite graph.<sup id="fnref:uniongraphs">[1]</sup></p>
+<p>\(G_t\) at each point encodes some constraints on the current position of the drone, which is indicated by some vertex \(v\in V(G)\) &#40;where \(V(G)\) is the vertex set of \(G\)&#41; and this position is <em>valid</em> at time \(t\) if the vertex exists in \(G_t\). In other words, position \(v\) is valid at \(t\) if \(v\in V(G_t)\).</p>
+<p>Now, the question becomes: given some cost function \(c: V(G)\times V(G) \to \mathbb{R}^{\ge 0}\) and some start and end nodes, construct a shortest valid path<sup id="fnref:validpath">[2]</sup> from the start to the end nodes &#40;where the start node is assumed to be at time \(t=0\)&#41;, if it exists.</p>
+<h3 id="a_simple_algorithm">A simple algorithm</h3>
+<p>With this definition and knowledge of the \(A^*\) algorithm &#40;hint, hint&#33;&#41;, I encourage working out what the solution to this problem is, assuming we have a <a href="https://en.wikipedia.org/wiki/Consistent_heuristic">consistent heuristic</a> for the path.</p>
+<p>As a side note: a simple heuristic, which usually works quite well, is to take the \(\ell^2\) distance between two nodes and divide it by the maximum velocity of the UAV—this is consistent since the UAV cannot travel between two points faster than being at its maximum velocity along the shortest possible line. In cases where many of the obstacles are small relative to the size of the graph and are sparse, this idea works extremely well because the approximation is fairly tight.</p>
+<p>With that in mind, here&#39;s the algorithm, which is really just a &#40;slightly&#41; modified version of \(A^*\). &#40;The code below is like quasi-Python pseudocode, but implementing directly shouldn&#39;t require too many changes. Additionally, some things can be easily stored instead of recomputed by exploiting the structure of the cost function.&#41;</p>
+<pre><code class="language-julia">:::python
+q &lt;- priority queue
+start_node &lt;- start node
+end_node &lt;- end nodec &lt;- edge-cost function
+h &lt;- heuristic cost functionG &lt;- graph at time t# Algorithm begins here
+add &#40;&#91;start_node&#93;, cost&#61;0&#41; to qwhile True:
+    curr_path, curr_cost &#61; q.pop_smallest&#40;&#41;
+    last_node &#61; curr_path&#91;end&#93;    if last_node is end_node:
+        return curr_path
+    
+    for neighbor in last_node.neighbors:
+        new_path &#61; curr_path.append&#40;neighbor&#41;
+        new_cost &#61; c&#40;new_path&#41;
+        if neighbor not in G&#40;new_cost&#41;:
+            continue
+        add &#40;new_path, cost&#61;&#40;new_cost &#43; h&#40;neighbor, end_node&#41;&#41;&#41; to q
+    return None</code></pre>
+<p>This algorithm returns one of the optimal paths, since a path will only be returned if the total cost of the found path is at most as large as the next possible valid path to some point \(v_t\) plus the heuristic cost \(h(v_t, e)\). By assumption, the heuristic function is a global underestimator, which immediately implies that this return path must have had a minimum possible original cost. I should also point out that there&#39;s nothing preventing an exponential time solution &#40;and it&#39;s certainly exponential in the worst case... if there doesn&#39;t exist a path between \(s, e\), for example&#41;&#33; This is not great, but &#40;as usual&#41; this algorithm works much better than exponential time, in practice.</p>
+<p>Another thing to be careful of is that the above algorithm can also return paths which double back on themselves &#40;e.g. if the UAV needs to &#39;wait&#39; for an obstacle to pass&#41;. This may not be desired behavior &#40;at least, definitely not in our case&#41;, so specific checks can be added to prevent this, depending on the application. Additionally, there is nothing restricting the cost function to be time-independent, so even this constraint can be relaxed while still maintaining optimality.</p>
+<p>Anyways, that&#39;s all for today. I wanted to keep this post &#40;relatively&#41; short and sweet since there&#39;s another one coming up quite soon on how to perform the optimization found in the previous posts: given a functional form for the position of the obstacles at some point in time—e.g., the next step after finding the approximation. Hopefully there will be some more time next week to write that out, but I make no major promises.</p>
+<p><table class="fndef" id="fndef:uniongraphs">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">By the &#39;union&#39; of graphs, I mean that the new graph should be </p>
+\[ \bigcup_{t} G_t = \left(\bigcup_{t} V(G_t), ~ \bigcup_t E(G_t)\right) \]
+<p>where \(V(G)\) is the set of vertices of \(G\) and \(E(G)\) is the set of edges of \(G\).</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:validpath">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content">A path \(v = (v_t)\) is valid if it is a path from the start node to the end node and each \(v_t \in G_t\) for every possible \(t\). We also have that \(t_{i+1} - t_i = c(v_{t}, v_{t+1})\). In other words, the time at action number \(i\) is the sum of the times of all of the previous actions &#40;this just gives a definition of &#39;time&#39; in this problem&#41;.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Sat, 17 Mar 2018 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Proximal gradient for SVM  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/svm-prox/index.html </link>
+  <guid> https://angeris.github.io/blog/content/svm-prox/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>For a class that&#39;s currently being written &#40;<em>ahem</em>, EE104&#41;, Prof. Boyd posed an interesting problem of writing a &#40;relatively general, but ideally simple&#41; proximal-gradient optimizer. The idea is that would act as a black-box way for students to plug in machine learning models of a specific form and have the optimizer do all of the hard work immediately, while appearing as transparent as possible.</p>
+<p>This led to a rabbit hole of asking what loss functions should be included in the optimization package &#40;huber, square, \(\ell_1\), etc.&#41;, many of which are relatively straightforward to implement—except, of course, SVM. Almost all of the other cases have few problems in implementation, since computing their proximal gradient is a direct computation &#40;e.g. \(\ell_1\) corresponds immediately to a <a href="https://en.wikipedia.org/wiki/Proximal_gradient_methods_for_learning#Solving_for_&#37;7F&#39;&quot;<code>UNIQ--postMath-0000002A-QINU</code>&quot;&#39;&#37;7F_proximity_operator">shrinkage operator</a> as we&#39;ll see below&#41;, yet the SVM loss has a set of hard constraints which I haven&#39;t found a nice way of stuffing into the prox-gradient step &#40;and I suspect that there are no such nice ways, but I&#39;d love to be proven wrong, here&#41;; thus, every step requires finding a projection into a polygon, which is, itself, a second optimization problem that has to be solved.</p>
+<p>Prox gradients are &#40;generally&#41; really well-behaved and I&#39;ve been having some fun trying to really understand how well they work as general optimizers—I write a few of those thoughts below along with an odd solution to the original problem.</p>
+<h2 id="proximal_gradients">Proximal gradients</h2>
+<p>Proximal gradients are a nice idea emerging from convex analysis which provide useful ways of dealing with tricky, non-differentiable convex functions. In particular, you can think of the proximal gradient of a given function as an optimization problem that penalizes taking steps &quot;too far&quot; in a given direction. Better yet &#40;and perhaps one of the main useful points&#41; is that most functions we care about have relatively nice proximal gradient operators&#33;</p>
+<p>Anyways, for now, let&#39;s define the proximal gradient of a function \(g\) at some point \(x\) &#40;usually denoted \(\text{prox}_g(x)\), though I will simply call it \(P_g(x)\) for shorter notation&#41; to be</p>
+\[
+P_g(x) \equiv \mathop{\arg\!\min}\limits_y \left(g(y) + \frac{1}{2}\lVert x- y\lVert_2^2\right)
+\]
+<p>the definition is useful only because, if we allow \(\partial g(u)\) to be the subdifferential of \(g\) at \(u\), then optimality guarantees that, if \(y = P_g(x)\), then &#40;by knowing that the subdifferential must be zero at the optimum&#41; we have</p>
+\[
+x - y \in \partial g(y).
+\]
+<p>In other words, \(0 \in \partial g(y)\) iff \(y\) is a fixed point of \(P_g\)—that is, we have reached a minimizer of \(g\) iff</p>
+\[
+y = P_g(y).
+\]
+<p>Additionally, there&#39;s no weird trickery that has to be done with subdifferentials since the result of \(P_g\) is always unique, which is a nice side-benefit. Using just this, we can already begin to do some optimization. For example, let&#39;s consider the &#40;somewhat boring, but enlightening&#41; example of minimization of the \(\ell_1\)-norm. Using the fact that</p>
+\[
+u = P_{\lambda |\cdot|}(x) \iff x - u \in \partial |u|
+\]
+<p>and using the fact that the \(\ell_1\)-norm is separable, we have, whenever \(u>0\) &#40;I&#39;m considering a single term of the sum, here&#41;</p>
+\[
+x - u = \lambda \implies u = x-\lambda\text{ whenever } x-\lambda > 0
+\]
+<p>similarly for the \(u=0\) case we have &#40;where \(\lambda S\) for some set \(S\) is just multiplication of every element in the set by \(\lambda\)&#41;</p>
+\[
+x - u = x \in \lambda [-1, 1] = [-\lambda, \lambda].
+\]
+<p>that is</p>
+\[
+u = 0\text{ whenever } |x|\le \lambda
+\]
+<p>and similarly for the \(u<0\) case, we have \(u = x + \lambda\) if \(x < -\lambda\). Since this is done for each component, the final operator has action</p>
+\[
+u_i = \begin{cases}
+x_i - \lambda, & x_i > \lambda\\
+0, & |x_i| \le \lambda \\
+x_i + \lambda, & x_i < -\lambda.
+\end{cases}
+\]
+<p>This operator is called the &#39;shrinkage&#39; operator because of its action on its input: if \(x_i\) is greater than our given \(\lambda\), then we shrink it by that amount. Note then, that successively applying &#40;in the same manner as SGD&#41; the update rule</p>
+\[
+u^{i+1} = P_{|\cdot|}(u^i)
+\]
+<p>correctly yields the minimum of the given convex function, i.e. 0. Of course, this isn&#39;t particularly surprising since we already know how to optimize the \(\ell_1\)-norm function, \(\lVert x \lVert_1\) &#40;just set it to zero&#33;&#41;, but it will help out quite a bit when considering more complicated functions.</p>
+<h2 id="proximal_gradient_update">Proximal gradient update</h2>
+<p>Now, given a problem of the form</p>
+\[
+\min_x f(x) + g(x)
+\]
+<p>where \(f\) is differentiable, and \(g\) is convex, we can write down a possible update in the same vein as the above, except that we now also update our objective for \(f\)<em>and</em> \(g\) at the same time</p>
+\[
+u^{i+1} = P_{\gamma^{i+1} g}(u^i - \gamma^{i+1}\nabla f(u^i)).
+\]
+<p>Here, \(\gamma^i\) is defined to be the step size for step \(i\). It turns out we can prove several things about this update, but, perhaps most importantly, we can show that it works.</p>
+<p>Anyways, this is all I&#39;ll say about the proximal gradient step as there are several good resources on the proximal gradient method around which will do a much better job of explaining it than I probably ever will: see <a href="https://web.stanford.edu/~boyd/papers/pdf/prox_algs.pdf">this</a> for example.</p>
+<h2 id="optimizing_svm_using_proximal_gradient">Optimizing SVM using proximal gradient</h2>
+<h3 id="initial_problem">Initial problem</h3>
+<p>I assume some familiarity with SVMs, but the program given might require a bit of explanation. The idea of an SVM is as a soft-margin classifier &#40;there are hard-magin SVMs, but we&#39;ll consider the former variety for now&#41;: we penalize the error of being on the wrong side of the decision boundary in a linear form &#40;with zero penalty for being on the correct side of the decision boundary&#41;. The only additional thing is that we also require that the margin&#39;s size also be penalized such that it doesn&#39;t depend overly on a particular variable &#40;e.g. as a form of regularization&#41;.</p>
+<p>The usual quadratic program for an SVM is, where \(\xi^\pm_i\) are the slack variables indicating how much the given margin is violated, \(\varepsilon > 0\) is some arbitrary positive constant, and \(\mu\) is the hyperplane and constant offset found by the SVM &#40;e.g. by allowing the first feature of a positive/negative sample to be \((x^\pm_i)_0 = 1\)&#41;:</p>
+\[
+\begin{aligned}
+& \underset{\xi, \mu}{\text{minimize}}
+& & \sum_i \xi^+_i + \sum_i \xi^-_i + C\lVert \mu \lVert_2 \\
+& \text{subject to}
+& & \mu^Tx^+_i - \varepsilon \ge -\xi^+_i,\,\,\text{ for all } i \\
+&&& \mu^Tx^-_i + \varepsilon \le \xi^-_i,\,\,\text{ for all } i\\
+&&& \xi^\pm_i \ge 0,\,\,\text{ for all } i
+\end{aligned}
+\]
+<p>we can rerwite this immediately, given that the class that our data point \(i\) corresponds to is \(y^{i}\in \\{-1, +1\\}\) to a much nicer form</p>
+\[
+\begin{aligned}
+& \underset{\xi, \mu}{\text{minimize}}
+& & 1^T \xi + C\lVert \mu \lVert_2 \\
+& \text{subject to}
+& & -y^i \mu^Tx_i - \varepsilon \ge -\xi_i,\,\,\text{ for all } i \\
+&&& \xi_i \ge 0,\,\,\text{ for all } i
+\end{aligned}
+\]
+<p>and noting that the objective is homogeneous of degree one, we can just multiply the constraints and all variables by \(\frac{1}{\varepsilon}\) which yields the immediate result &#40;after flipping some signs and inequalities&#41;</p>
+\[
+\begin{aligned}
+& \underset{\xi, \mu}{\text{minimize}}
+& & 1^T\xi + C\lVert \mu \lVert_2 \\
+& \text{subject to}
+& & \xi_i\ge y^i \mu^Tx_i +1,\,\,\text{ for all } i \\
+&&& \xi_i \ge 0,\,\,\text{ for all } i
+\end{aligned}
+\]
+<p>which, after changing the \(\ell_2\) regularizer to an \(\ell_2^2\)-norm regularizer &#40;which is equivalent for approriate regularization hyperparameter, say \(\eta\)<sup id="fnref:hyperparameter">[1]</sup>&#41; yields</p>
+\[
+\begin{aligned}
+& \underset{\xi, \mu}{\text{minimize}}
+& & 1^T \xi + C\lVert \mu \lVert_2^2 \\
+& \text{subject to}
+& & \xi_i\ge y^i \mu^Tx_i +1,\,\,\text{ for all } i \\
+&&& \xi_i \ge 0,\,\,\text{ for all } i.
+\end{aligned}
+\]
+<p>This is the final program we care about and the one we have to solve using our proximal gradient operator. In general, it&#39;s not obvious how to fit the inequalities into a step, so we have to define a few more things.</p>
+<h3 id="set_indicators">Set indicators</h3>
+<p>For now, let&#39;s define the set indicator function</p>
+\[
+g_S(x) = \begin{cases}
+0 & x\in S\\
++\infty & x\not\in S
+\end{cases}
+\]
+<p>which is convex whenever \(S\) is convex; we can use this to encode the above constraints &#40;I drop the \(S\) for convenience in what follows&#41; such that a program equivalent to be above is</p>
+\[
+\underset{\xi, \mu}{\text{minimize}} \,\, 1^T \xi + C\lVert \mu \lVert_2^2 + g(\mu, \xi)
+\]
+<p>which is exactly what we wanted&#33; Why? Well:</p>
+\[
+\underset{\xi, \mu}{\text{minimize}}\,\, \underbrace{1^T \xi + C\lVert \mu \lVert_2^2}_\text{differentiable} + \underbrace{g(\mu, \xi)}_\text{convex}
+\]
+<p>so now, we just need to find the proximal gradient operator for \(g(x)\) &#40;which is not as nice as one would immediately think, but it&#39;s not bad&#33;&#41;.</p>
+<h3 id="proximal_gradient_of_the_linear_inequality_indicator">Proximal gradient of the linear inequality indicator</h3>
+<p>Now, let&#39;s generalize the problem a bit: we&#39;re tasked with the question of finding the prox-gradient of \(g_S(x)\) such that \(S\) is given by some set of inequalities \(S = \{x\,|\, Ax\le b\}\) for some given \(A, b\).<sup id="fnref:equivalence">[2]</sup> That is, we require</p>
+\[
+\mathop{\arg\!\min}\limits_y \frac{1}{2\lambda}\lVert x- y\lVert_2^2 + g_S(y)
+\]
+<p>which can be rewritten as the equivalent program &#40;where the \(1/2\lambda\) is dropped since it&#39;s just a proportionality constant&#41;</p>
+\[
+\begin{aligned}
+& \underset{y}{\text{minimize}}
+& & \lVert x- y\lVert_2^2 \\
+& \text{subject to}
+& & Ay\le b
+\end{aligned}
+\]
+<p>it turns out this program isn&#39;t nicely solvable using the prox-gradient operator &#40;since there&#39;s no obvious way of projecting onto \(Ax\le b\) and <em>also</em> minimizing the quadratic objective&#41;. But, of course, I wouldn&#39;t be writing this if there wasn&#39;t a cute trick or two we could do: note that this program has a strong dual &#40;i.e. the values of the <a href="https://en.wikipedia.org/wiki/Duality_&#40;optimization&#41;">dual program</a> and the primal are equal&#41; by <a href="https://en.wikipedia.org/wiki/Slater&#37;27s_condition">Slater&#39;s condition</a>, so how about trying to solve the dual program? The lagrangian is</p>
+\[
+\mathcal{L} = \lVert x- y\lVert_2^2 + \gamma^T(Ay - b)
+\]
+<p>from which we can derive the dual by taking derivatives over \(y\):</p>
+\[
+\nabla\mathcal{L} = y-x + A^T\gamma = 0 \implies y = x - A^T\gamma
+\]
+<p>and plugging in the above &#40;and simplifying&#41; yields the program</p>
+\[
+\begin{aligned}
+& \underset{\eta}{\text{maximize}}
+& & \eta^T(Ax-b) - \frac{1}{2}\lVert A^T\eta\lVert_2^2 \\
+& \text{subject to}
+& & \eta \ge 0
+\end{aligned}
+\]
+<p>from which we can reconstruct the original solution by the above, given:</p>
+\[
+y = x - A^T\eta.
+\]
+<p>This program now has a nice prox step, since \(\left(P_{\eta \ge 0}(\eta)\right)_i = \max\{0, \eta_i\}\) &#40;the &#39;positive&#39; part of \(\eta_i\), in other words&#41;. This latter case is left as an exercise for the reader.</p>
+<h2 id="final_thoughts">Final Thoughts</h2>
+<p>Putting the above together yields a complete way of optimizing the SVM program: first, take a single step of the initial objective, then find the minimum projection on the polygon over the given inequality constraints by using the second method, and then take a new step on the original, initial program presented.</p>
+<p>Of course, this serves as little more than an academic exercise &#40;I&#39;m not sure how thrilled either Boyd nor Lall would be at using dual programs in 104, even in a quasi-black-box optimizer&#41;, but it may be of interest to people who take interest in relatively uninteresting things &#40;e.g. me&#41; or to people who happen to have <em>really freaking fast</em> proximal gradient optimizers &#40;not sure these exist, but we can pretend&#41;.</p>
+<p><table class="fndef" id="fndef:hyperparameter">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">We&#39;re also finding this by using cross-validation, rather than a-priori, so it doesn&#39;t matter too much.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:equivalence">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content">Note that this is equivalent to the original problem, actually. The forwards direction is an immediate generalization. The backwards direction is a little more difficult, but can be made simple by considering, say, only positive examples.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Fri, 22 Dec 2017 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Optimizers, momentum, and cooling schedules &#40;Part 2/?&#41;  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/path-optimization-2/index.html </link>
+  <guid> https://angeris.github.io/blog/content/path-optimization-2/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>This is the second post in a series of posts describing an initial approach to doing path-planning in real-time on a small, embedded compute board. For the first in the series which describes the energy function used below, see the <a href="https://angeris.github.io/blog/path-optimization-thoughts.html">first post</a>.</p>
+<h2 id="quick_recap">Quick recap</h2>
+<p>Anyways, we left off on the idea that we now have a function which we wish to optimize, along with a sequence of constants \(C\) which tends to a given solution—in particular, and perhaps most importantly, we only care about the solution in the limit \(C\to\infty\).</p>
+<p>As before, though, we can&#39;t just optimize the function</p>
+\[
+\mathcal{L}(x; c, R, C) = \sum_{i}\left[\sum_j\phi\left(C\left(\frac{\lVert x_i - c_j \lVert_2^2}{R_j^2} - 1\right)\right) + \eta \lVert x_i - x_{i+1}\lVert_2^2\right]
+\]
+<p>over some large \(C\), since we&#39;ve noted that the objective becomes almost-everywhere flat in the limit<sup id="fnref:measuretheory">[1]</sup> and thus becomes very difficult to optimize using typical methods. Instead, we optimize over the sequence of functions, for \(C_k \to \infty\),</p>
+\[
+x^{(k)} = \min_x\mathcal{L}(x; c, R, C_k) 
+\]
+<p>picking only</p>
+\[
+x^* = \lim_{k\to\infty} x^{(k)}
+\]
+<p>as our final trajectory. The goal of this post is to explore some methods for optimizing this function in the constrained, embedded environment which we&#39;ll be using for the competition.</p>
+<h2 id="gradient_descent">Gradient descent</h2>
+<p>I&#39;ll do a quick introduction to gradient descent since there are <a href="https://medium.com/ai-society/hello-gradient-descent-ef74434bdfa5">plenty</a> of <a href="https://machinelearningmastery.com/gradient-descent-for-machine-learning/">posts</a> on <a href="https://www.quora.com/What-is-an-intuitive-explanation-of-gradient-descent">this</a> <a href="http://homes.soic.indiana.edu/classes/spring2012/csci/b553-hauserk/gradient_descent.pdf">method</a>, many of which I suspect are much better than anything I&#39;ll ever write.</p>
+<p>Anyways, the simple idea &#40;or another perspective on it&#41; is that, if we want to find the minimum of a function \(V\), then we can think about the function as a potential for a particle, whose position we call \(x\), and then just run Newton&#39;s equation forward in time&#33;</p>
+\[
+m\ddot x = -\nabla V(x)
+\]
+<p>where \(\ddot x = \frac{d^2x}{dt^2}\) &#40;this is just a rewriting of \(F=ma=m\ddot x\), where our force is conservative&#41;.  You may notice a problem with this idea: well, if we land in a well, we&#39;ll continue oscillating... that is, there&#39;s literally no friction to stop us from just continuing past the minimum. So, let&#39;s add this in as a force proportional to the velocity &#40;but pointing in the opposite direction&#41;, with friction coefficient \(\mu>0\):</p>
+\[
+m\ddot x = -\nabla V(x) - \mu \dot x.
+\]
+<p>Now, here I&#39;ll note we can do two things: one, we can keep the former term containing acceleration &#40;i.e. momentum&#41;, accepting that we could possibly overshoot our minimum &#40;because, say, we&#39;re going &#39;too fast&#39;&#41; but then later &#39;come back&#39; to it &#40;this is known as gradient descent with momentum&#41;,<sup id="fnref:momentum">[2]</sup> or, if we never want to overshoot it &#40;but allow for the possibility that we may always be too slow in getting there in the first place&#41; we can just send our momentum term to zero by sending \(m \to 0\). I&#39;ll take the latter approach for now, but we&#39;ll consider the former case, soon.</p>
+<p>Anyways, sending \(m\to 0\) corresponds to having a ball slowly rolling down an extremely sticky hill, stopping only at a local minimum, that is:</p>
+\[
+\mu\dot x + \nabla V(x) = 0
+\]
+<p>or, in other words:</p>
+\[
+\dot x = -\frac{1}{\mu}\nabla V(x).
+\]
+<p>Discretizing this equation by noting that, by definition of the derivative, we have</p>
+\[
+\dot x(t_{i+1}) \approx \frac{x_{i+1} - x_i}{h}
+\]
+<p>then gives us &#40;by plugging this into the above&#41;</p>
+\[
+\frac{x_{i+1} - x_i}{h} = -\frac{1}{\mu}\nabla V(x),
+\]
+<p>or, after rearranging &#40;and setting \(\mu=1\), since we can control \(h\) however we like, say by defining \(h := \frac{h}{\mu}\)&#41;</p>
+\[
+x_{i+1} = x_i - h\nabla V(x).
+\]
+<p>In other words, gradient descent corresponds to the discretization of Newton&#39;s equations in the <em>overdamped</em> limit &#40;e.g. in the limit of small mass and large friction&#41;.</p>
+<p>This method is great because &#40;a&#41; we know it converges with probability 1 &#40;as was relatively recently proven <a href="https://arxiv.org/abs/1602.04915">here</a>&#41; for arbitrary, somewhat nice functions and &#40;b&#41; because it <em>works</em>. That being said, it&#39;s slow; for example, in the previous post, we saw that it converged after 5000 iterations &#40;which, to be fair, takes about 20 seconds on my machine, but still&#41;.</p>
+<p>A simple improvement &#40;where we don&#39;t throw \(m\to 0\)&#41; yields a significant speed up&#33; Of course, at the cost of having to deal with more hyperparameters, but that&#39;s okay: we&#39;re big kids now, and we can deal with more than one hyperparameter in our problems.</p>
+<h2 id="gradient_descent_with_momentum">Gradient descent with momentum</h2>
+<p>The next idea is to, instead of taking \(m\to 0\), just write out the full discretization scheme. To make our lives easier, we rewrite \(v(t) \equiv \dot x(t)\) to be our velocity, this gives us a simple rewriting of the form:</p>
+\[
+\begin{align}
+m\dot v &= -\nabla V(x) - \mu v\\
+\dot x(t) &= v(t)
+\end{align}
+\]
+<p>discretizing the second equation with some step-size \(h'\) &#40;as above&#41; we get</p>
+\[
+x_{t+1} = x_t + h'v_{t+1}
+\]
+<p>where the former equation is, when discretized with some step size \(h\)</p>
+\[
+m\frac{v_{t+1} - v_t}{h} = -\nabla V(x_t) - \mu v_t
+\]
+<p>or after rearranging, and defining \(\gamma \equiv \frac{h}{m}\) &#40;which we can make as small as we&#39;d like&#41;</p>
+\[
+\begin{align}
+v_{t+1} &= -\gamma \nabla V(x_t) + (1-\mu \gamma) v_t\\
+x_{t+1} &= x_t + h'v_{t+1}
+\end{align}
+\]
+<p>usually we take \(h' = 1\), and, to prevent \(v_t\) from having weird behaviour, we require that \(1-\mu\gamma > 0\), i.e. that \(\gamma < \frac{1}{\mu}\).<sup id="fnref:oscillations">[3]</sup> If we call \(\beta \equiv 1 - \mu\gamma\) and therefore have that \(0 < \beta  < 1\) then we obtain the classical momentum for gradient descent</p>
+\[
+\begin{align}
+v_{t+1} &= -\gamma \nabla V(x_t) + \beta v_t\\
+x_{t+1} &= x_t + v_{t+1}
+\end{align}
+\]
+<p>which is what we needed&#33; Well... close to what we needed, really.</p>
+<p>Anyways, just to give some perspective on the speed up: using momentum, the optimization problem took around 600 iterations to converge, more than 8 times less than the original given above. I&#39;ll give a picture of this soon, but I&#39;m missing one more slight detail.</p>
+<h2 id="cooling_schemes">Cooling schemes</h2>
+<p>Imagine we want to optimize some function \(\ell(\cdot)\) that is, in general, extremely hard to solve. If we&#39;re lucky, we may be able to do the next best thing: take a series of functions parametrized by, say, \(C\), such that \(\ell_C(\cdot) \to \ell(\cdot)\) as \(C\to\infty\),<sup id="fnref:approaches">[4]</sup><em>and</em> where the problem is simple to solve for \(C_{k+1}\), given the solution for \(C_k\).</p>
+<p>Of course, given this and the above we can already solve the problem: we begin with some small \(C_0\) and then, after converging for \(\ell_{C_0}(\cdot)\) we then continue to \(\ell_{C_1}(\cdot)\), after converging to that, we then continue to solve for \(\ell_{C_2}(\cdot)\), etc., until we reach some desired tolerance on the given result.</p>
+<p>Or... &#40;of course, I&#39;m writing this for a reason&#41;, we could do something fancy using the previous scheme:</p>
+<p>Every time we update our variable, we also increase \(k\) such that both the problem sequence and the final solution converge at the same time. It is, of course, totally not obvious that this works &#40;though with some decent choice of schedule, one could imagine it should&#41;; the video below shows this idea in action using both momentum and this particular choice of cooling scheme &#40;note the number of iterations is much lower relative to the previous attempt&#39;s 5000, but also note that, while the scheme converged in the norm—that is, the variables were updated very little—it didn&#39;t actually converge to an optimal solution, but it was pretty close&#33;&#41;.</p>
+<p>I&#39;d highly recommend looking at the code in order to get a better understanding of how all this is implemented and the dirty deets.</p>
+<p>Anyways, optimizing the original likelihood presented in the first post &#40;and in the first part of <em>this</em> post&#41; using momentum and the above cooling schedule yields the following nice little video:</p>
+<p>&lt;video controls&gt;     &lt;source src&#61;&quot;/images/path-optimization-2/path<em>optimization</em>2.mp4&quot; type&#61;&quot;video/mp4&quot;&gt; &lt;/video&gt;</p>
+<p>As before, this code &#40;with more details and implementation&#41; can be found in the <a href="https://github.com/StanfordAIR/optimization-sandbox">StanfordAIR Github repo</a>.</p>
+<p><table class="fndef" id="fndef:measuretheory">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">This is, indeed, a technical term, but it&#39;s also quite suggestive of what really happens.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:momentum">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content">Of course, there are many reasons why we&#39;ll want momentum, but those will come soon.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:oscillations">
+    <tr>
+        <td class="fndef-backref">[3]</td>
+        <td class="fndef-content">Consider \(V(x) = 0\), with some initial condition, \(v_0 > 0\), say, then we&#39;ll have </p>
+\[ v_t = -k v_{t-1} \]
+<p>for some \(k = \mu\gamma - 1>0\). Solving this yields \(v_{t} = (-1)^tk^t v_{0}\). This is weird, because it means that our velocity will change directions every iteration even though there&#39;s no potential&#33; This is definitely not expected &#40;nor desirable&#41; behaviour.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:approaches">
+    <tr>
+        <td class="fndef-backref">[4]</td>
+        <td class="fndef-content">In some sense. Say: in the square error, or something of the like. This can be made entirely rigorous, but I choose not to do it here since it&#39;s not terribly essential.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Sun, 22 Oct 2017 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Some thoughts on global path optimization &#40;Part 1/?&#41;  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/path-optimization/index.html </link>
+  <guid> https://angeris.github.io/blog/content/path-optimization/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>I usually see path planning in some shape or form usually solved as a Bellman update, Dynamic Programming-style problem, where the given control is asymptotically stable and optimal; in general, this seems to work quite well, but when we have so much computational power available now-a-days, I do wonder if a global optimization approach is both feasible and maybe even better. There is some literature on this, but most of it is... I&#39;ll just say it&#39;s not really as interesting as I thought it would be, at first right.</p>
+<p>That being said, if anyone has any papers that I should <em>definitely</em> read, please do send them over to my Twitter &#40;below&#41; or email, etc.; whatever floats your boat. I feel like I have a very limited view of the current state of the field, so I&#39;d always love to learn more&#33; That being said, a cursory search through Google Scholar isn&#39;t as productive as I would&#39;ve thought.</p>
+<p>Anyways, let&#39;s get to something more interesting. I believe I&#39;ll be splitting this post up into some small set &#40;say, 3, though this may change&#41; posts explaining individual parts and more prickly details of the algorithm, but for now I&#39;ll just share the big idea and dive into the last part &#40;which I argue is the hardest case&#41;.</p>
+<p>Essentially the problem will be broken down into three basic steps &#40;and a fourth &quot;looping&quot; step&#41;:</p>
+<ol>
+<li><p>Discretize the space and goals into a graph problem which is guaranteed to be &#40;a&#41; <em>damn fast to solve</em> and &#40;b&#41; to always give a feasible result &#40;minus a curvature constraint—that will come in later&#41;.</p>
+</li>
+<li><p>Make the resulting path through the graph into an ordered set of points \(x_i \in \mathbb{R}^2\) &#40;or \(\mathbb{R}^3\), depending on what problem needs to be solved&#41; through actual Euclidean space.</p>
+</li>
+<li><p>Perform continuous optimization starting at this resulting path in order to meet curvature constraints and add some &#39;finishing touches&#39; &#40;this will be formalized in a second, don&#39;t worry&#41;.</p>
+</li>
+<li><p>Do \((3)\) for moving objects, for a while, as \((1) \to (2)\) are solved again, simultaneously.</p>
+</li>
+</ol>
+<p>In this post, I&#39;ll mostly focus on step \((3)\), which is actually all you need to truly optimize over a path &#40;along with some cute other heuristics&#41;, though steps \((1)\) and \((2)\) are also really just fast heuristics so we don&#39;t get stuck in crappy minima that would take us through the middle of an obstacle. I&#39;ll show how this can happen in non-obvious ways which is kinda fun for the first few times and mostly infuriating for the rest of the time &#40;which is why we end up going through \((1)\) and \((2)\) in the end&#33;&#41;.</p>
+<h2 id="smooth_barriers">Smooth barriers</h2>
+<p>Perhaps the main idea of this step is that we can optimize over some function &#40;which isn&#39;t quite a hard-wall constraint&#41; and then slowly tune a parameter until it becomes a better and better approximation of a hard wall; for this example I&#39;ve chosen the &#40;reversed&#41; logistic function</p>
+\[
+\phi(x) = \frac{1}{1+e^{x}}
+\]
+<p>such that two things happen: one, that \(\phi(x) \to 0\) as \(x\to \infty\) and \(\phi(x) \to 1\) as \(x\to -\infty\), and, two, that \(\phi(Cx)\) approximates a hard wall as \(C\to \infty\). Below is \(\phi(Cx)\) plotted for a few different values of \(C\):</p>
+<p>&lt;img src&#61;&quot;/images/path-optimization-1/phi_curvature.png&quot; class&#61;&quot;plot&quot;&gt; <em>Barrier functions for varying curvatures \(C\).</em></p>
+<p>The idea is that the smooth problem should be easy to solve and we can get consistently better approximations by starting at the easy problem and solving a sequence of problems which, in the limit, give the desired path.</p>
+<p>More generally speaking, let the obstacles be centered at some set of points \(\\{c\_j\\}\), each with some radius \(R\_j\), then a single constraint corresponds to the barrier of curvature \(C\) given by &#40;where the object is at position \(x\)&#41;</p>
+\[
+\phi\left(C\left(\frac{\lVert x - c_j \lVert_2^2}{R_j^2} - 1\right)\right)
+\]
+<p>which, if we assume that our path is characterized by an ordered set of points \(\\{x_i\\}\), gives our complete energy function to be</p>
+\[
+\mathcal{L}(x; c, R, C) = \sum_{ij}\phi\left(C\left(\frac{\lVert x_i - c_j \lVert_2^2}{R_j^2} - 1\right)\right)
+\]
+<p>which is really just a fancy way of writing &quot;each discretized point in my path should be outside of an obstacle.&quot; This is <em>close</em> to what we want, but it&#39;s not quite there yet: we aren&#39;t penalizing for being arbitrarily far away from other points—that is, if we just put all of our \(\\{x_i\\}\) at infinity, we now have zero penalty&#33;</p>
+<p>Of course, that&#39;s a pretty stupid path that no drone can take &#40;especially if we&#39;re constrained to be in some particular region, which, in this case, we are&#41;, so we do the next straightforward thing: we also penalize any point being far away from its adjacent points. E.g. we add a penalty term of the form \(\eta\lVert x\_i - x\_{i+1}\lVert_2^2\) for \(\eta>0\). </p>
+<p>In this case, our complete energy function then looks like</p>
+\[
+\mathcal{L}(x; c, R, C) = \sum_{i}\left[\sum_j\phi\left(C\left(\frac{\lVert x_i - c_j \lVert_2^2}{R_j^2} - 1\right)\right) + \eta \lVert x\_i - x\_{i+1}\lVert_2^2\right]
+\]
+<p>with a &#39;tunable&#39; parameter \(\eta\), and constraint wall &#39;hardness&#39; \(C\) which we send to infinity as we solve a sequence of problems. That is, let \(\\{C\_k\\}\) be a sequence such that \(C_k\to \infty\) then we solve the sequence of problems</p>
+\[
+x^{(k)} = \min\_x\mathcal{L}(x; c, R, C_k) 
+\]
+<p>and take the trajectory</p>
+\[
+x^* = \lim\_{k\to\infty} x^{(k)}
+\]
+<p>in the limit. Why do we do this? Because the derivative of \(\mathcal{L}\) vanishes as \(C\to\infty\) for the hard constraints. This can be seen in the picture above, by looking at the left side; as \(C\) becomes large, the function becomes essentially flat when \(x<0\) and \(x>0\). This is generally bad, since, if we were to optimize directly for some very large \(C\) which goes through the interior of an obstacle, we would be near a point where the derivative nearly vanishes even though we&#39;re inside of an obstacle&#33;</p>
+<p>This is totally infeasible for our problem and we cannot sidestep this issue in an obvious way using general optimization tools. So we&#39;re forced to do the Next Best Thing™, which is to perform this cooling schedule idea while optimizing over the objective.<sup id="fnref:shortestpath">[1]</sup></p>
+<p>Anyways, optimizing this function somewhat successfully with some decent cooling schedule &#40;which is the subject of the next post&#41; yields a cute movie that looks like the following</p>
+<p>&lt;video controls&gt;     &lt;source src&#61;&quot;/images/path-optimization-1/path_optimization.mp4&quot; type&#61;&quot;video/mp4&quot;&gt; &lt;/video&gt;</p>
+<p>Don&#39;t be fooled, though: there&#39;s plenty of little experiments that didn&#39;t work out while making this. Robustness is a huge reason why optimizing just this objective would take way too long and, hence, why we require the heuristics mentioned above &#40;and which I&#39;ll soon discuss&#33;&#41;.</p>
+<p>A general overview of the code &#40;with more details and implementation&#41; can be found in the <a href="https://github.com/StanfordAIR/optimization-sandbox">StanfordAIR Github repo</a>.</p>
+<table class="fndef" id="fndef:shortestpath">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">As given before, we can create feasible trajectories which do not have this problem by discretization methods—this helps out quite a bit since, for complicated trajectories where a lot of the initial path intersects obstacles, most of the time is spent on either &#40;a&#41; making a good cooling schedule for \(C\) or &#40;b&#41; escaping the minima which include local obstacles. I&#39;ll discuss these methods in a later post.</td>
+    </tr>
+</table> ]]>
+  </content:encoded>
+    
+  <pubDate>Tue, 17 Oct 2017 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Least-squares and image processing  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/constrained-ls-intro/index.html </link>
+  <guid> https://angeris.github.io/blog/content/constrained-ls-intro/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>Least squares is one of those things that seems relatively simple once you first look at it &#40;perhaps also because most linear algebra texts relegate it to nothing more than a page or two on their textbooks&#41;, but has surprisingly powerful implications that are quite nice, and, most importantly, that are easily computable.</p>
+<p><em>If you&#39;re interested in looking at the results first, I&#39;d recommend skipping the following section and going immediately to the next one, which shows the application.</em></p>
+<p>So, let&#39;s dive right in&#33;</p>
+<h2>Vanilla least squares</h2>
+<p>The usual least-squares many of us have heard of is a problem of the form</p>
+:&#36;
+<p>\min_x \,\,\lVert Ax - b \lVert^2 &#36;</p>
+<p>where I define \(\lVert y\lVert^2 \equiv \sum_i y_i^2 = y^Ty\) to be the usual Euclidean norm &#40;and &#36;y^T&#36; denotes the transpose of \(y\)&#41;. This problem has a unique solution provided that \(A\) is full-rank &#40;i.e. has independent columns&#41;, and therefore that \(A^TA\) is invertible.<a href="If &#36;A^TA x &#61; 0&#36; then &#36;x^TA^TAx &#61; 0&#36;, but &#36;x^TA^TAx &#61; &#40;Ax&#41;^T&#40;Ax&#41; &#61; \lVert Ax \lVert^2 &#61; 0&#36; which is zero only when &#36;Ax &#61; 0&#36;. E.g. only if there is an &#36;x&#36; in the nullspace of &#36;A&#36;.">^sq-invertible</a> This is true since the problem above is convex &#40;e.g. any local minimum, if it exists, corresponds to the global minimum<a href="A proof is straightforward. Let&#39;s say &#36;f&#36; is differentiable, since this is the case we care about, then we say &#36;f&#36; is convex if the hyperplane given by &#36;\nabla f&#40;x&#41;&#36; &#40;at any &#36;x&#36;&#41; bounds &#36;f&#36; from below.">^convex-global-min</a>&#41;, coercive &#40;the function diverges to infinity, and therefore <em>has</em> a local minimum&#41; and differentiable such that</p>
+\[
+\nabla \lVert Ax - b \lVert^2 = \nabla (Ax-b)^T(Ax-b) = 2A^T(Ax-b) = 0,
+\]
+<p>or that, after rearranging the above equation,</p>
+\[
+A^TAx = A^Tb.
+\]
+<p>This equation is called the <em>normal equation</em>, which has a unique solution for \(x\) since we said \(A^TA\) is invertible. In other words, we can write down the &#40;surprisingly, less useful&#41; equation for \(x\)</p>
+\[
+x = (A^TA)^{-1}A^Tb.
+\]
+<p>A simple example of direct least squares can be found on the <a href="https://angeris.github.io/blog/pid-ls.html">previous post</a>, but that&#39;s nowhere as interesting as an <em>actual</em> example, using some images, presented below. First to show the presented example is possible, I should note that this formalism can be immediately extended to cover a &#40;multi-&#41;objective problem of the form, for \(\lambda_i > 0\)</p>
+\[
+\min_x \,\,\lambda_1\lVert A_1x - b_1 \lVert^2 + \lambda_2\lVert A_2x - b_2 \lVert^2 + \dots + \lambda_n\lVert A_nx - b_n \lVert^2
+\]
+<p>by noting that &#40;say, with two variables, though the idea extends to any number of objectives&#41;, we can pull the \(\lambda_i\) into the inside of the norm and observing that</p>
+\[
+\lVert a\lVert^2 + \lVert b \lVert^2 = \left \lVert 
+\begin{bmatrix}
+a\\
+b
+\end{bmatrix}
+\right\lVert^2.
+\]
+<p>So we can rewrite the above multi-objective problem as</p>
+\[
+\lambda_1\lVert A_1x - b_1 \lVert^2 + \lambda_2\lVert A_2x - b_2 \lVert^2  = \left\lVert 
+\begin{bmatrix}
+\sqrt{\lambda_1} A_1\\
+\sqrt{\lambda_2} A_2
+\end{bmatrix}
+x
+-
+\begin{bmatrix}
+\sqrt{\lambda_1}b_1\\
+\sqrt{\lambda_2}b_2
+\end{bmatrix}\right\lVert^2.
+\]
+<p>Where the new matrices above are defined as the &#39;stacked&#39; &#40;appended&#41; matrix of \(A_1, A_2\) and the &#39;stacked&#39; vector \(b_1, b_2\). Or, defining </p>
+\[
+\bar A \equiv 
+\begin{bmatrix}
+\sqrt{\lambda_1} A_1\\
+\sqrt{\lambda_2} A_2
+\end{bmatrix}
+\]
+<p>and</p>
+\[
+\bar b \equiv
+\begin{bmatrix}
+\sqrt{\lambda_1} b_1\\
+\sqrt{\lambda_2} b_2
+\end{bmatrix},
+\]
+<p>we have the equivalent problem</p>
+\[
+\min_x \,\, \lVert \bar A x - \bar b\lVert^2
+\]
+<p>which we can solve by the same means as before.</p>
+<p>This &#39;extension&#39; now allows us to solve a large amount of problems &#40;even equality-constrained ones&#33; For example, say \(\lambda_i\) corresponds to an equality constraint, then we can send \(\lambda_i \to \infty\), which, if possible, sends that particular term to zero<a href="There are, of course, better ways of doing this which I&#39;ll present in some later post. For now, though, note that if the constraint is not achievable at equality, e.g. that we have &#36;\lVert Cx - d\lVert^2 \ge \varepsilon &gt; 0&#36; for any &#36;x&#36;, then the objective &#36;\lambda_i\lVert Cx - d\lVert^2 \ge \lambda_i\varepsilon \to \infty&#36; whenever we send &#36;\lambda_i \to \infty&#36;. This gives us a way of determining if the constraint is feasible &#40;which happens only if the program converges to a finite value for arbitrarily increasing &#36;\lambda_i&#36;&#41; or infeasible &#40;which happens, as shown before, if the minimization program diverges to infinity&#41;.">^eq-constraint</a>&#41;, including the image reconstruction problem that will be presented below. Yes, there are better methods, but I can&#39;t think of many that can be written in about 4 lines of Python with only a linear-algebra library &#40;not counting loading and saving, of course 😉&#41;.</p>
+<h2 id="image_de-blurring_with_ls">Image de-blurring with LS</h2>
+<p>Let&#39;s say we are given a blurred image, represented by some vector \(y\) with, say, a gaussian blur operator given by \(G\) &#40;which can be represented as a matrix&#41;. Usually, we&#39;d want to minimize a problem of the form</p>
+\[
+\min_x \,\,\lVert Gx - y \lVert^2
+\]
+<p>where \(x\) is the reconstructed image. In other words, we want the image \(x\) such that applying a gaussian blur \(G\) to \(x\) yields the closest possible image to \(y\). E.g. we really want something of the form</p>
+\[
+Gx \approx y.
+\]
+<p>Writing this out is a bit of a pain, but it&#39;s made a bit easier by noting that convolution with a 2D gaussian kernel is separable into two convolutions of 1D &#40;e.g. convolve the image with the up-down filter, and do the same with the left-right&#41; and by use of the Kronecker product to write out the individual matrices.<a href="Assuming we write out the image as a row-major order, with dimensions &#36;m\times m&#36;, we can write the &#91;Toeplitz matrix&#93;&#40;https://en.wikipedia.org/wiki/Toeplitz_matrix&#41; of the 1D gaussian convolution of length &#36;n&#36;, say &#36;T&#36;. Then the row-convolution of the image&#39;s one-dimensional vector representation is given by &#36;I_m \otimes T&#36;, where &#36;\otimes&#36; denotes the &#91;Kronecker product&#93;&#40;https://en.wikipedia.org/wiki/Kronecker_product&#41; of both matrices and &#36;I_m&#36; is the &#36;m\times m&#36; identity matrix. Similarly, we can do this for the column convolution by writing it out as &#36;T\otimes I_&#123;m&#43;n&#125;&#36; &#40;note the additional &#36;n&#36; which comes from the convolution&#33;&#41;, then the final &#36;G&#36; matrix is">^kronecker-conv</a> The final \(G\) is therefore the product of each of the convolutions. Just to show the comparison, here&#39;s the initial image, taken from <a href="https://commons.wikimedia.org/wiki/File:Lichtenstein_img_processing_test.png">Wikipedia</a></p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/initial_image.png&quot; class&#61;&quot;insert&quot;&gt; <em>Original greyscale image</em></p>
+<p>and here&#39;s the image, blurred with a 2D gaussian kernel of size 5, with \(\sigma = 3\)</p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/blurred_image.png&quot; class&#61;&quot;insert&quot;&gt; <em>Blurred greyscale image. The vignetting comes from edge effects.</em></p>
+<p>The kernel, for context, looks like:</p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/gaussian_kernel.png&quot; class&#61;&quot;insert&quot;&gt; <em>2D Gaussian Kernel with \(N=5, \sigma=3\)</em></p>
+<p>Solving the problem, as given before, yields the final &#40;almost identical&#41; image:</p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/reconstructed_image.png&quot; class&#61;&quot;insert&quot;&gt; <em>The magical reconstructed image&#33;</em></p>
+<p>Which was nothing but solving a simple least squares problem &#40;as we saw above&#41;&#33;</p>
+<p>Now, you might say, &quot;why are we going through all of this trouble to write this problem as a least-squares problem, when we can just take the FFT of the image and the gaussian and divide the former by the latter? Isn&#39;t convolution just multiplication in the Fourier domain?&quot;</p>
+<p>And I would usually agree&#33;</p>
+<p>Except for one problem: while we may <em>know</em> the gaussian blurring operator on artificial images that <em>we</em> actively blur, the blurring operator that we provide for real images may not be fully representative of what&#39;s really happening&#33; By that I mean, if the real blurring operator is given by \(G^\text{real}\), it could be that our guess \(G\) is far away from \(G^\text{real}\), perhaps because of some non-linear effects, or random noise, or whatever.</p>
+<p>That is, we know what photos, in general, look like: they&#39;re usually pretty smooth and have relatively few edges. In other words, the variations and displacements aren&#39;t large almost everywhere in most images. This is where the multi-objective form of least-squares comes in handy—we can add a secondary &#40;or third, etc&#41; objective that allows us to specify how smooth the actual image should be&#33; </p>
+<p>How do we do this, you ask? Well, let&#39;s consider the gradient at every point. If the gradient is large, then we&#39;ve met an edge since there&#39;s a large color variation between one pixel and its neighbour, similarly, if the gradient is small at that point, the image is relatively smooth at that point.</p>
+<p>So, how about specifying that the sum of the norms of the gradients at every point be small?<a href="It turns out this has deep connections to a bunch of beautiful mathematical theories &#40;most notably, the theory of heat diffusion on manifolds&#41;, but we won&#39;t go into them here since it&#39;s relatively out of scope, though I may cover it in a later post.">^heat-diffusion</a> That is, we want the gradients to <em>all</em> be relatively small &#40;minus those at edges, of course&#33;&#41;, with some parameter that we can tune. In other words, let \(D_x\) be the difference matrix between pixel \((i,j)\) and pixel \((i+1,j)\) &#40;e.g. if our image is \(X\) then \((D_x X)_{ij} = X_{i+1,j} - X_{ij}\), and, similarly, let \(D_y\) be the difference matrix between pixel \((i, j)\) and \((i,j+1)\).<a href="These are slightly tricker to form for 2D images, but, as with the previous, we make heavy use of the Kronecker product. The derivative matrix for a 1D &#36;m&#36;-vector is the one formed by &#40;let&#39;s call it &#36;L&#36; with dimensions &#36;&#40;m-1&#41;\times m&#36;&#41;">^derivative-mat</a> Then our final objective is of the form</p>
+\[
+\min_x \,\,\lVert Gx - y \lVert^2 + \lambda\left(\lVert D_x x \lVert^2 + \lVert D_y x \lVert^2\right)
+\]
+<p>where \(\lambda \ge 0\) is our &#39;smoothness&#39; parameter. Note that, if we send \(\lambda \to \infty\) then we really care that our image is &#39;infinitely smooth&#39; &#40;what would that look like?<a href="You probably guessed it: it&#39;s just an image that is all the same color.">^smooth-image</a>&#41;, while if we send it to zero, we care that the reconstruction from the &#40;possibly not great&#41; approximation of \(G^\text{real}\) is really good. Now, let&#39;s compare the two methods with a slightly corrupted image:</p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/corrupted<em>blurred</em>image.png&quot; class&#61;&quot;insert&quot;&gt; <em>The corrupted, blurred image we feed into the algorithm</em></p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/initial_image.png&quot; class&#61;&quot;insert&quot;&gt; <em>Original greyscale image &#40;again, for comparison&#41;</em></p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/smoothed<em>corrupted</em>reconstructed<em>image</em>l&#61;1e-07.png&quot; class&#61;&quot;insert&quot;&gt; <em>Reconstruction with \(\lambda = 10^{-7}\)</em></p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/corrupted<em>reconstructed</em>image.png&quot; class&#61;&quot;insert&quot;&gt; <em>Reconstruction with original method</em></p>
+<p>Though the normalized one has slightly larger grains, note that, unlike the original, the contrast isn&#39;t as heavily lost and the edges, etc, are quite a bit sharper.</p>
+<p>We can also toy a bit with the parameter, to get some intuition as to what all happens:</p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/smoothed<em>corrupted</em>reconstructed<em>image</em>l&#61;0.001.png&quot; class&#61;&quot;insert&quot;&gt; <em>Reconstruction with \(\lambda = 10^{-3}\)</em></p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/smoothed<em>corrupted</em>reconstructed<em>image</em>l&#61;1e-05.png&quot; class&#61;&quot;insert&quot;&gt; <em>Reconstruction with \(\lambda = 10^{-5}\)</em></p>
+<p>&lt;img src&#61;&quot;/images/constrained-ls-intro/smoothed<em>corrupted</em>reconstructed<em>image</em>l&#61;1e-10.png&quot; class&#61;&quot;insert&quot;&gt; <em>Reconstruction with \(\lambda = 10^{-10}\)</em></p>
+<p>Of course, as we make \(\lambda\) large, note that the image becomes quite blurry &#40;e.g. &#39;smoother&#39;&#41;, and as we send \(\lambda\) to be very small, we end up with the same solution as the original problem, since we&#39;re saying that we care very little about the smoothness and much more about the reconstruction approximation.</p>
+<p>To that end, one could think of many more ways of characterizing a &#39;natural&#39; image &#40;say, if we know what some colors should look like, what is our usual contrast, etc.&#41;, all of which will yield successively better results, but I&#39;ll leave with saying that LS, though relatively simple, is quite a powerful method for many cases. In particular, I&#39;ll cover fully-constrained LS &#40;in a more theoretical post&#41; in the future, but with an application to path-planning.</p>
+<p>Hopefully this was enough to convince you that even simple optimization methods are pretty useful&#33; But if I didn&#39;t do my job, maybe you&#39;ll have to read some future posts. ;&#41;</p>
+<p>If you&#39;d like, the complete code for this post can be found <a href="https://github.com/guillean/guille.site/tree/master/notebooks/constrained-ls-intro">here</a>.</p>
+<p>      A nice picture usually helps with this:     <img src="https://angeris.github.io/blog/images/constrained-ls-intro/bounding-hyperplanes.png" alt="Convex envelope approximation" /></p>
+<p>Each of the hyperplanes &#40;which are taken at the open, red circles along the curve; the hyperplanes themselves denoted by gray lines&#41; always lies below the graph of the function &#40;the blue parabola&#41;. We can write this as
+&#36;&#36;
+f&#40;y&#41;\ge &#40;y-x&#41;^T&#40;\nabla f&#40;x&#41;&#41; &#43; f&#40;x&#41;
+&#36;&#36;
+for all &#36;x, y&#36;.This is usually taken to be the *definition* of a convex function, so we&#39;ll take it as such here. Now, if the point &#36;x^0&#36; is a local minimum, we must have &#36;\nabla f&#40;x^0&#41; &#61; 0&#36;, this means that
+&#36;&#36;
+f&#40;y&#41; \ge &#40;y-x^0&#41;^T&#40;\underbrace&#123;\nabla f&#40;x^0&#41;&#125;_&#123;&#61;0&#125;&#41; &#43; f&#40;x^0&#41; &#61; &#40;y-x^0&#41;^T0 &#43; f&#40;x^0&#41; &#61; f&#40;x^0&#41;,
+&#36;&#36;
+for any &#36;y&#36;.</p>
+<p>In other words, that</p>
+\[
+f(y) \ge f(x^0),
+\]
+<p>for any \(y\). But this is the definition of a global minimum since the point \(f(x^0)\) is less than any other value the function takes on&#33; So we&#39;ve proved the claim that any local minimum &#40;in fact, more strongly, that any point with vanishing derivative&#41; is immediately a global minimum for a convex function. This is what makes convex functions so nice&#33;</p>
+<p>      &#36;         G &#61; &#40;T\otimes I<em>&#123;m&#43;n&#125;&#41;&#40;I</em>m \otimes T&#41;     &#36;</p>
+<p>which is much simpler to compute than the horrible initial expression dealing with indices. Additionally, these expressions are sparse &#40;e.g. the first is block-diagonal&#41;, so we can exploit that to save on both memory and processing time. For more info, I&#39;d recommend looking at the code for this entry.</p>
+<p>  </p>
+\[
+L=\begin{bmatrix}
+1 & -1 & 0 & 0 & \dots\\
+0 & 1 & -1 & 0 & \dots\\
+0 & 0 & 1 & -1 & \dots\\
+\vdots & \vdots & \vdots & \vdots & \ddots
+\end{bmatrix}
+\]
+<p>this is relatively straightforward to form using an off-diagonal matrix. Note also that this matrix is quite sparse, which saves us from very large computation. Now, we want to apply this to each row &#40;column&#41; of the 2D image which is in row-major form. So, we follow the same idea as before and pre &#40;post&#41; multiply by the identity matrix. That is, for an \(m\times m\) image</p>
+\[
+D_x = I_m\otimes L
+\]
+<p>and</p>
+\[
+D_y = L\otimes I_m
+\]
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Tue, 19 Sep 2017 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  PID as least squares  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/pid-ls/index.html </link>
+  <guid> https://angeris.github.io/blog/content/pid-ls/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>I want to say this is a folk theorem &#40;borrowing terminology from game theory&#41; in that everyone who does optimal control theory knows about this stuff, probably,<sup id="fnref:people">[1]</sup> but I haven&#39;t really seen it stated explicitly anywhere. If anyone does indeed work on optimal control, I&#39;d love to know your thoughts&#33; &#40;even if you don&#39;t, I&#39;d still like to know your thoughts on it&#33;&#41;</p>
+<p>For context, I&#39;m currently leading a team on path planning for fixed-wing UAVs &#40;I still don&#39;t really know who put me in charge of this stuff, or <em>why</em> for that matter–-overall, it seems pretty terrifying for them, but kinda fun for me&#41;, and I wondered why I hadn&#39;t actually seen least squares in many papers on fixed-wing control. I still haven&#39;t gotten an answer to the question, to be honest, but I did waste some potentially productive time showing that PID \(\subset\) LS. Some quick definitions: let \(u(t)\) be our control input and allow \(\varepsilon(t)\) to be the error of the function &#40;that is, \(\varepsilon(t) = x(t) - \hat x(t)\) where \(x(t)\) is the desired position and \(\hat x(t)\) is the current position&#41;, then a PID controller is defined as</p>
+\[
+u(t) = K_p \varepsilon(t) + K_i \int_0^t d\tau\,\varepsilon(\tau) + K_d\frac{\partial\varepsilon(t)}{\partial t}
+\]
+<p>where each of the \(K_{(\cdot)}\) variables are a gain or proportionality constant. Say \(K_p\) is the proportional constant &#40;i.e. how much of \(u\) is proportional to the current error&#41;, \(K_i\) is the integral proportionality constant &#40;i.e. how much of \(u\) is proportional to the integral of the error&#41;, and \(K_d\) is the derivative constant &#40;i.e. ditto&#41;. For a more thorough explanation for what each of these means intuitively, see the <a href="https://en.wikipedia.org/wiki/PID_controller">PID wikipedia page</a>.</p>
+<p>Anyways, I&#39;ll likely make a separate &#40;more introductory&#41; post to least squares but, for now, I define an LS problem to be an optimization problem of the form, for arbitrary but given \(A, b, \lambda_j>0, C, d\)</p>
+\[
+\begin{aligned}
+& \underset{u}{\text{minimize}}
+& & \sum_j \lambda_j \lVert A_j u - b_j\lVert_2^2 \\
+& \text{subject to}
+& & Cu = d
+\end{aligned}
+\]
+<p>where the \(\lVert \cdot \lVert_2^2\) norm is the usual \(\ell_2\)-norm &#40;i.e. \(\lVert x \lVert_2^2 = \sum_i x_i^2\)&#41;. It&#39;s notable that this problem has an analytical solution &#40;not that you&#39;d necessarily <em>want</em> the analytical solution for most big-enough scenarios&#41; and is extremely well-behaved for most optimization methods.<sup id="fnref:politifact">[2]</sup> Now, consider the following objective function with trivial equality constraints &#40;e.g. \(0=0\), for convenience, by setting \(C = (0,0,…,0)^T,\, d = 0\)&#41; and \(K\) being some proportionality constant &#40;I&#39;ll make the connection to the original \(K_{(\cdot)}\) variables above, soon&#41;:</p>
+\[
+E(u, \varepsilon) = \lambda_p \left\lVert u - K\varepsilon (t)\right\lVert_2^2 + \lambda_i \left\lVert u - K\int d\tau\, \varepsilon(t)\right\lVert_2^2 + \lambda_d\left\lVert u - K \frac{\partial\varepsilon(t)}{\partial t}\right\lVert_2^2
+\]
+<p>Minimizing this function by setting its gradient to zero &#40;this is necessary and sufficient by differentiability, convexity, and coerciveness &#91;that is, \(E(u) \to \infty\), whenever \(\lVert u\lVert \to \infty\)&#93;&#41; gives the solution<sup id="fnref:generalization">[3]</sup></p>
+\[
+\nabla E(u, \varepsilon) = \lambda_p \left(u - K\varepsilon (t)\right) + \lambda_i \left( u - K\int d\tau\, \varepsilon(t)\right) + \lambda_d\left(u - K \frac{\partial\varepsilon(t)}{\partial t}\right) = 0,
+\]
+<p>or, after rearranging</p>
+\[
+u = \frac{K}{\lambda_p + \lambda_i + \lambda_d}\left(\lambda_p \varepsilon(t) + \lambda_i\int d\tau\, \varepsilon(t) + \lambda_d \frac{\partial\varepsilon(t)}{\partial t}\right),
+\]
+<p>which allows the following correspondence between the original PID and the LS problem to be</p>
+\[
+\begin{aligned}
+K &= K_p + K_i + K_d\\
+\lambda_p &= \frac{K_p}{K}\\
+\lambda_i &= \frac{K_i}{K}\\
+\lambda_d &= \frac{K_d}{K}.
+\end{aligned}
+\]
+<p>So, now we&#39;ve given the condition we wanted and we&#39;re done&#33;</p>
+<p>Anyways, you may ask, why is this useful? I guess it kind of extends the framework to add constraints from your control surface, or secondary objectives. To be completely honest, though? I have no idea.</p>
+<p><table class="fndef" id="fndef:people">
+    <tr>
+        <td class="fndef-backref">[1]</td>
+        <td class="fndef-content">I mostly know people who do hardware work, etc. on UAVs, so I don&#39;t really have a representative sample of control people.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:politifact">
+    <tr>
+        <td class="fndef-backref">[2]</td>
+        <td class="fndef-content"><strong>PolitiFact</strong>: <em>Mostly true.</em> I mean the usual cases &#40;e.g. first-order methods, second-order methods, or conjugate gradient/quasi-newton methods&#41;. It&#39;s horribly behaved in conic program &#40;SOCP&#41; solvers.</td>
+    </tr>
+</table>
+ <table class="fndef" id="fndef:generalization">
+    <tr>
+        <td class="fndef-backref">[3]</td>
+        <td class="fndef-content">There&#39;s an immediate generalization here: any control of the form \(\sum_i \gamma_i\left(u - C_i\right), \gamma_i>0\) can be immediately written as the minimizer to an energy function \(E(u) = \sum_i \eta_i\lVert u - \xi C_i\lVert^2_2\). We can actually go further and note there&#39;s yet another generalization to any control of the form \(\sum_i \left(S_iu - C_i\right)\), where each \(S_i\) is symmetric and &#40;strictly&#41; positive definite. This is true as each \(S_i\) has an inverse and a &#39;square root&#39; matrix &#40;e.g. let, \(S\) be some positive-definite matrix. We know \(SV =  V\Lambda\) for \(V^TV = VV^T = I\) and diagonal \(\Lambda > 0\), thus \(S^{1/2}=V\Lambda^{1/2}V^T\)&#41;, such that the energy function is written in terms of these. Though it&#39;s somewhat enlightening &#40;I guess&#41;, I leave the derivation as an exercise for the reader.</td>
+    </tr>
+</table>
+</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Wed, 13 Sep 2017 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  This blog is a lie  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/bloglie/index.html </link>
+  <guid> https://angeris.github.io/blog/content/bloglie/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>&#40;Maybe.&#41;</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Tue, 12 Sep 2017 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
+    <![CDATA[  404  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/404/index.html </link>
+  <guid> https://angeris.github.io/blog/404/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<div style="margin-top: 40px; font-size: 40px; text-align: center;">  <br>  <div style="font-weight: bold;">
+    404
+  </div>  <br>
+  <br>    The requested page was not found  <br>
+  <br>
+  <br>
+  <br>  <div style="margin-bottom: 300px; font-size: 24px">
+    <a href="https://angeris.github.io/blog/">Click here</a> to go back to the homepage.
+  </div></div> ]]>
+  </content:encoded>
+    
+  <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+</channel></rss>
