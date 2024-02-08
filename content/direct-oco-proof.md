@@ -1,5 +1,5 @@
 +++
-title = "Online gradient descent has low regret: a direct proof"
+title = "Online gradient descent has low regret: a (simple) direct proof"
 date = Date(2024, 2, 7)
 +++
 
@@ -194,3 +194,10 @@ sense, bounded by the norm of $x^\star$ and the individual norms of $g_t$. It
 feels like there should be some simple construction which allows this
 interaction to be bounded in a more natural way. (Of course, this will play in
 a variety of ways with how we choose $x_t$ based on the gradients and such.)
+
+I should note that this bound is tight for any algorithm in that only the
+constant can be improved. (In particular, it is possible to construct a
+stochastic adversary that always achieves at least $R \ge CLM\sqrt{T}$ regret,
+for some $C > 1/4$, no matter how $x_t$ is chosen.) Indeed, this question is
+deeply related to the [previous post on finding a lower bound for a random
+walk](../../content/simple-proof-rademacher/), but I won't go into it here.
