@@ -130,7 +130,7 @@ The inequality is a one-liner and follows easily from the fact that
     R \le \sum_{t=1}^T g_t^T(x_t - x^\star) = \frac{\eta}{2}\sum_{t=1}^T\left\| g_t\right\|^2 - \left\|\sqrt{\frac{\eta}{2}}\tilde g + \sqrt{\frac{2}{\eta}}x^\star\right\|^2  + \frac{2}{\eta}\|x^\star\|^2,
 \]
 where $\tilde g = \sum_{t=1}^T g_t$, using the definition of $x_t = -\eta
-\sum_{t=1}^{t-1} g_t$. (To see this, expand the right hand side and cancel
+\sum_{\tau=1}^{t-1} g_\tau$. (To see this, expand the right hand side and cancel
 terms.) Finally, the middle term is nonpositive, as it is a negative square, so
 we get the bound
 \[
