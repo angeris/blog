@@ -1,4 +1,4 @@
-Sitemap: https://angeris.github.io/sitemap.xml
+Sitemap: https://guille.site/sitemap.xml
 
 User-agent: *
 Disallow:
