@@ -16,7 +16,7 @@ prepath = ""
 generate_rss = true
 website_title = "Longest Path Search"
 website_descr = "Because finding the shortest path is boring (and not NP-hard)."
-website_url = "https://guille.site"
+website_url = "https://angeris.github.io/blog"
 rss_full_content = true
 +++
 <!--website_url   = "https://guille.site/"-->

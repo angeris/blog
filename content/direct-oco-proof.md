@@ -1,5 +1,5 @@
 +++
-title = "Online gradient descent has low regret: a (simple) direct proof"
+title = "Online gradient descent has low regret: a one-ish-liner"
 date = Date(2024, 2, 7)
 +++
 
