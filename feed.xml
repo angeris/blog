@@ -75,7 +75,7 @@ x_t = -\eta \sum_{\tau=1}^{t-1} \nabla f_\tau(x_\tau).
 \]
 <p>&#40;Again, it&#39;s worth reiterating: this is done <em>even in the presence of adversarially chosen</em> \(f_t\).&#41; Indeed, after a long enough time scale, we see that our strategy and the best fixed strategy, with complete knowledge of the future, are, on average, about the same. Algorithms where the average regret vanishes have a bit of a silly name, but I&#39;ll put it here for anthropological reasons: they are called <strong>no-regret algorithms</strong>.</p>
 <h2 id="proof">Proof</h2>
-<p>Anyways, the proof is almost silly. The first order of events is to note that, since \(f_t\) is convex, then, by definition, we have</p>
+<p>Anyways, the proof is fairly easy. The first order of events is to note that, since \(f_t\) is convex, then, by definition, we have</p>
 \[
     f_t(y) \ge f_t(x_t) + \nabla f_t(x_t)^T(y - x_t),
 \]
