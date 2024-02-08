@@ -56,8 +56,8 @@ Written out, this is
 \begin{equation}\label{eq:ogd}
     x_t = x_{t-1} - \eta\nabla f_t(x_{t-1}),
 \end{equation}
-where $\eta > 0$ is some parameter we will set soon. (Keep this in mind
-as this is the definition of $x_t$ we will use throughout.)
+where $\eta > 0$ is some parameter we will set soon, called the **step size**.
+(Keep this in mind as this is the definition of $x_t$ we will use throughout.)
 Note that we can write $x_t$ purely in terms of the previously-observed
 gradients, since
 \[
