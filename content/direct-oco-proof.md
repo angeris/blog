@@ -54,7 +54,7 @@ at round $t-1$ (which we didn't know until we played $x_{t-1}$, since
 the adversary chose it after!) and update slightly in that direction.
 Written out, this is
 \begin{equation}\label{eq:ogd}
-    x_t = x_{t-1} + \eta\nabla f_t(x_{t-1}),
+    x_t = x_{t-1} - \eta\nabla f_t(x_{t-1}),
 \end{equation}
 where $\eta > 0$ is some parameter we will set soon. (Keep this in mind
 as this is the definition of $x_t$ we will use throughout.)
@@ -105,7 +105,7 @@ vanishes have a bit of a silly name, but I'll put it here for anthropological
 reasons: they are called **no-regret algorithms**.
 
 ## Proof
-Anyways, the proof is almost silly. The first order of events is to note that,
+Anyways, the proof is fairly easy. The first order of events is to note that,
 since $f_t$ is convex, then, by definition, we have
 \[
     f_t(y) \ge f_t(x_t) + \nabla f_t(x_t)^T(y - x_t),
