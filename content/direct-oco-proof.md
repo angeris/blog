@@ -200,4 +200,4 @@ constant can be improved. (In particular, it is possible to construct a
 stochastic adversary that always achieves at least $R \ge CLM\sqrt{T}$ regret,
 for some $C > 1/4$, no matter how $x_t$ is chosen.) Indeed, this question is
 deeply related to the [previous post on finding a lower bound for a random
-walk](../../content/simple-proof-rademacher/), but I won't go into it here.
+walk](/content/simple-proof-rademacher/), but I won't go into it here.
