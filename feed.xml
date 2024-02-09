@@ -235,7 +235,7 @@ X = \sum_{i=1}^n X_i,
 <h2 id="attempt_2_and_solution">Attempt #2 &#40;and solution&#41;</h2>
 <p>Another easy quantity to compute in this case is \(\mathbf{E}[X^4]\). &#40;And, really, any even power of \(X\) is easy. On the other hand, since \(X\) has a distribution that is symmetric around 0, all odd moments are 0.&#41; Splitting the sum out into each of the possible quartic terms, we find that any term containing an odd power of \(X_i\) will be zero in expectation as the \(X_i\) are independent. So, we find</p>
 \[
-\mathbf{E}[X^4] = \sum_{i} \mathbf{E}[X_i^4] + \sum_{i\ne j} \mathbf{E}[X_i^2X_j^2] = n + n(n-1) = n^2.
+\mathbf{E}[X^4] = \sum_{i} \mathbf{E}[X_i^4] + \sum_{i\ne j} \mathbf{E}[X_i^2X_j^2] = n + 3n(n-1) \le 3n^2.
 \]
 <p>This quantity will come in handy soon.</p>
 <p>We can, on the other hand, split up the expectation of \(X^2\) in a variety of ways. One is particularly handy to get a tail <em>lower bound</em> like the one we wanted in our proof idea &#40;above&#41;:</p>
@@ -271,15 +271,15 @@ X = \sum_{i=1}^n X_i,
 \[
 \mathbf{E}[|X|] \ge \frac{16}{25\sqrt{5}}\frac{\mathbf{E}[X^2]^{3/2}}{\mathbf{E}[X^4]}.
 \]
-<p>And, finally, using the fact that \(\mathbf{E}[X^2] = n\) and \(\mathbf{E}[X^4] = n^2\), we get the final result:</p>
+<p>And, finally, using the fact that \(\mathbf{E}[X^2] = n\) and \(\mathbf{E}[X^4] \le 3n^2\), we get the final result:</p>
 \[
-\mathbf{E}[|X|] \ge \frac{16}{25\sqrt{5}}\sqrt{n} \ge \Omega(\sqrt{n}),
+\mathbf{E}[|X|] \ge \frac{16}{75\sqrt{5}}\sqrt{n} \ge \Omega(\sqrt{n}),
 \]
-<p>as required, with no need for combinatorics&#33; Of course the factor of \(16/(25\sqrt{5})
-\approx .29\) is rather weak compared to the factor of \(\sqrt{2/\pi} \approx
-.80\), but this is ok for our purposes.</p>
+<p>as required, with no need for combinatorics&#33; Of course the factor of \(16/(75\sqrt{5}) \approx .095\) is rather weak compared to the factor of \(\sqrt{2/\pi} \approx .80\), but this is ok for our purposes.</p>
 <h2 id="general_extensions">General extensions</h2>
 <p>Of course, similar constructions also hold rather nicely for things like uniform \([-1, 1]\) variables, or Normally distributed, mean zero variables. Any variable for which the second and fourth moment can be easily computed allows us to compute a lower bound on this expectation. &#40;Expectations of the absolute value of the sums of independently drawn versions of these variables could be similarly computed.&#41; These have no obvious combinatorial analogue, so those techinques cannot be easily generalized, whereas this bound applies immediately.</p>
+<h2 id="thanks">Thanks</h2>
+<p>A big thank you to <a href="https://twitter.com/Almost_Sure/status/1755601562737737766">George Lowther</a> for pointing out that I was missing a factor of 3 in the fourth moment calculation in an earlier version of this post&#33;</p>
 <table class="fndef" id="fndef:csproof">
     <tr>
         <td class="fndef-backref">[1]</td>
