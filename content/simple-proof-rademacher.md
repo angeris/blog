@@ -88,7 +88,7 @@ is symmetric around 0, all odd moments are 0.) Splitting the sum out into each
 of the possible quartic terms, we find that any term containing an odd power of
 $X_i$ will be zero in expectation as the $X_i$ are independent. So, we find
 \[
-\E[X^4] = \sum_{i} \E[X_i^4] + \sum_{i\ne j} \E[X_i^2X_j^2] = n + n(n-1) = n^2.
+\E[X^4] = \sum_{i} \E[X_i^4] + \sum_{i\ne j} \E[X_i^2X_j^2] = n + 3n(n-1) \le 3n^2.
 \]
 This quantity will come in handy soon.
 
@@ -130,13 +130,13 @@ lower bound
 \[
 \E[|X|] \ge \frac{16}{25\sqrt{5}}\frac{\E[X^2]^{3/2}}{\E[X^4]}.
 \]
-And, finally, using the fact that $\E[X^2] = n$ and $\E[X^4] = n^2$, we get the final result:
+And, finally, using the fact that $\E[X^2] = n$ and $\E[X^4] \le 3n^2$, we get the final result:
 \[
-\E[|X|] \ge \frac{16}{25\sqrt{5}}\sqrt{n} \ge \Omega(\sqrt{n}),
+\E[|X|] \ge \frac{16}{75\sqrt{5}}\sqrt{n} \ge \Omega(\sqrt{n}),
 \]
-as required, with no need for combinatorics! Of course the factor of $16/(25\sqrt{5})
-\approx .29$ is rather weak compared to the factor of $\sqrt{2/\pi} \approx
-.80$, but this is ok for our purposes.
+as required, with no need for combinatorics! Of course the factor of
+$16/(75\sqrt{5}) \approx .095$ is rather weak compared to the factor of
+$\sqrt{2/\pi} \approx .80$, but this is ok for our purposes.
 
 ## General extensions
 Of course, similar constructions also hold rather nicely for things like
@@ -146,6 +146,12 @@ us to compute a lower bound on this expectation. (Expectations of the absolute
 value of the sums of independently drawn versions of these variables could be
 similarly computed.) These have no obvious combinatorial analogue, so those
 techinques cannot be easily generalized, whereas this bound applies immediately.
+
+## Thanks
+A big thank you to [George
+Lowther](https://twitter.com/Almost_Sure/status/1755601562737737766) for
+pointing out that I was missing a factor of 3 in the fourth moment calculation
+in an earlier version of this post!
 
 
 
