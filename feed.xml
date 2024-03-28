@@ -23,6 +23,109 @@
 
 <item>
   <title>
+    <![CDATA[  Another short proof of OCO and miscellanea  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/another-oco-proof/index.html </link>
+  <guid> https://angeris.github.io/blog/content/another-oco-proof/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>A short post with two silly, but ultimately useful, results. The first is <a href="https://angeris.github.io/blog/content/direct-oco-proof">yet another proof of OGD being low regret</a>. The second is that the last iterate, or even the average iterate &#40;or, indeed, any convex combination of the iterates&#41; can be very far away from the optimal point, even though they are low regret, without further assumptions on the functions we are optimizing over.</p>
+<p>Why yet another proof? No idea. OCO still feels incredibly magical to me on many levels and getting several clean proofs is usually useful for understanding that kind of thing.</p>
+<p>On the other hand, I&#39;m not sure this gets anyone closer to that goal, but it&#39;s &#40;probably&#41; worth pursuing anyways.</p>
+<h2 id="yet_another_proof_of_the_regret_of_online_gradient_descent">&#40;Yet another&#41; Proof of the regret of online gradient descent</h2>
+<p>Using an identical set up and notation to the <a href="https://angeris.github.io/blog/content/direct-oco-proof">previous post on OCO</a> note that, given subgradient \(g_t \in \mathbf{R}^n\) bounded by \(L > 0\), we only have to bound the quantity</p>
+\[
+    \sum_{t=1}^T g_t^T(x_t - x^\star).
+\]
+<p>Here, for \(t=0, \dots, T\), we define</p>
+\[
+    x_{t+1} = x_t - \eta g_t,
+\]
+<p>and \(x^\star \in \mathbf{R}^n\) is any point in some bounded subset with diameter at most \(M > 0\).</p>
+<p>The new proof is almost silly. Let \(\|z\|^2 = z_1^2 + \dots + z_n^2\) be the sum of squares norm, then</p>
+\[
+    0 \le \|x_{T+1} - x^\star\|^2.
+\]
+<p>But, \(x_{T} = x_{T-1} - \eta g_t\), so</p>
+\[
+    \begin{aligned}
+        0 \le \|x_{T+1} - x^\star\|^2 &= \|x_{T} - x^\star\|^2 - 2\eta g_T^T(x_T - x^\star) + \eta^2 \|g_T^2\|^2 = \dots\\
+        &= \|x_0 - x^\star\|^2 - 2\eta \sum_{t=1}^T g_t^T(x_t - x^\star) + \eta^2 \sum_{t=1}^T \|g_t\|^2.
+    \end{aligned}
+\]
+<p>Rearranging gives</p>
+\[
+    \sum_{t=1}^T g_t^T(x_t - x^\star) \le \frac{1}{2\eta}\|x_0 - x^\star\|^2 + \frac{\eta}{2} \sum_{t=1}^T \|g_t\|^2.
+\]
+<p>The rest is mechanical of course, but it&#39;s worth writing anyways. Using our bounds on the diameter of the domain and the gradients, we get</p>
+\[
+    \sum_{t=1}^T g_t^T(x_t - x^\star) \le \frac{M^2}{2\eta} + \frac{\eta TL^2}{2},
+\]
+<p>and, setting \(\eta = M/(L\sqrt{T})\) gives the result</p>
+\[
+    \sum_{t=1}^T g_t^T(x_t - x^\star) \le \frac{ML\sqrt{T}}{2}.
+\]
+<p>Funnily enough, note that this bound is slightly tighter than the previous one by a factor of 2, even though the previous proof relied on an exact rewriting.</p>
+<h3 id="projected_online_gradient_descent">Projected online gradient descent</h3>
+<p>Another nice point is that this proof immediately carries over to the projected case, unlike the previous one. Say the optimal point \(x^\star\) lies in some closed, convex set \(C\subseteq \mathbf{R}^n\) with diameter at most \(M\), then, let \(\Pi(x)\) denote the projection of \(x\) onto \(C\), defined</p>
+\[
+    \Pi(x) = \argmin_{z \in C} \|z - x\|^2.
+\]
+<p>&#40;We can say <em>the</em> projection, since this is unique from the convexity of \(C\).&#41; A fun exercise is to note that, for any two points \(x, y\in \mathbf{R}^n\) the projection satisfies</p>
+\[
+\|\Pi(x) - \Pi(y)\|^2 \le \|x - y\|^2.
+\]
+<p>In other words, the projection \(\Pi\) is <em>nonexpansive</em>.</p>
+<p>Anyways, in this case, note that the gradient update step is given by</p>
+\[
+    x_{t+1} = \Pi(x_t - \eta g_t);
+\]
+<p><em>i.e.</em>, we project \(x_t\) into the set \(C\) after every gradient update. The proof, using the fact that \(\Pi\) is nonexpansive, is essentially identical to the previous proof since</p>
+\[
+    0 \le \|x_{T+1} - x^\star\|^2 = \|\Pi(x_T - \eta g_T) - x^\star\|^2 \le \|x_T - \eta g_T - x^\star\|^2.
+\]
+<p>&#40;Note the second inequality, there.&#41; The rest of the proof proceeds identically as the previous one, except instead of exact equalities, we have inequalities coming from the nonexpansivene property of \(\Pi\).</p>
+<h2 id="no_bounds_on_distance">No bounds on distance</h2>
+<p>The above proof is kind of interesting: we used the &#40;trivial&#41; inequality</p>
+\[
+    \|x_{T+1} - x^\star\|^2 \ge 0,
+\]
+<p>to get a fairly tight bound on the regret. This &#39;suggests&#39; &#40;to me, at least&#41; that this bound is likely somewhat tight in many cases, might it be &#39;close to tight&#39; in general? By this I mean, is it the case that</p>
+\[
+    \|x_{T+1} - x^\star\|^2 \approx 0,
+\]
+<p>for some notion of \(\approx\)?</p>
+<p>Certainly, this is true in the case where \(g_t\) are the subgradients of some fixed function evaluated at the \(x_t\) &#40;that is, when \(g_t \in \partial f(x_t)\) for some \(f\)&#41; and \(x^\star\) is, say, the unique minimizer of \(f\). Might it be true in the more general scenario where the \(g_t\) are adversarial?</p>
+<p>Unfortunately the answer is no.</p>
+<p>Indeed, we can show that there is a &#40;silly&#41; set of gradients \(g_t\) such that the distance between the last iterate &#40;or, really, any iterate, or convex combination of the iterate, such as the average&#41; and the \(x^\star\) that maximizes the regret bound is the diameter of the set.</p>
+<p>Let \(C\) be any compact convex set with diameter \(M\), then there are points \(x_0\) and \(y\) such that \(\|x_0 - y\| = M\). Now, let \(g_t = 0\) for \(t=1, \dots,
+T-1\) and \(g_T = \alpha(x_0 - y)\), where \(\alpha = L/\|x_0 - y\|\), which we can do as adversaries. Then the \(x^\star\) that maximizes regret is the one that solves</p>
+\[
+\min_{z \in C} \sum_{t=1}^T g_t^Tz = \min_{z \in C}~ (x_0 - y)^Tz,
+\]
+<p>with minimizer \(x^\star = y\). Since \(x_T = x_0\) then it&#39;s game over since \(\|x_0 - x^\star\| = M\). It&#39;s clear that any convex &#40;indeed, affine&#41; combination of the \(x_t\) is always equal to \(x_0\), so, unlike in the stochastic case, this does not help either.</p>
+<h3 id="linearity_is_hard">Linearity is hard</h3>
+<p>The main problem with the above is that &#40;a&#41; we have to choose a move before the last gradient is revealed to us, and &#40;b&#41; the maximizers of linear functions are <em>extremely sensitive</em> to the parameters of the problem. This means that even a very small change in the gradients can have drastic movements in \(x^\star\), which prevents us from getting control over these conditions.</p>
+<p>One &#39;simple-ish&#39; technique for getting rid of this sensitivity is to assume that the functions \(f_t\) are strongly convex. It is not quite 100&#37; clear to me if, in this case, the last iterate &#40;or, say, the average iterate&#41; is close to the unique minimizer \(x^\star\), but it does seem likely.</p>
+<p>I unfortunately cannot find an easy source for this on my &#40;admittedly cursory&#41; glance, but if there is one, that would be great&#33;</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Wed, 27 Mar 2024 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
     <![CDATA[  Online gradient descent has low regret: a one-ish-liner  ]]>
   </title>
   <link> https://angeris.github.io/blog/content/direct-oco-proof/index.html </link>
