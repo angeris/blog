@@ -105,7 +105,7 @@
 <p>Let \(C\) be any compact convex set with diameter \(M\), then there are points \(x_0\) and \(y\) such that \(\|x_0 - y\| = M\). Now, let \(g_t = 0\) for \(t=1, \dots,
 T-1\) and \(g_T = \alpha(x_0 - y)\), where \(\alpha = L/\|x_0 - y\|\), which we can do as adversaries. Then the \(x^\star\) that maximizes regret is the one that solves</p>
 \[
-\min_{z \in C} \sum_{t=1}^T g_t^Tz = \min_{z \in C}~ (x_0 - y)^Tz,
+\min_{z \in C} \left(\sum_{t=1}^T g_t^Tz\right) = \min_{z \in C} \left((x_0 - y)^Tz\right),
 \]
 <p>with minimizer \(x^\star = y\). Since \(x_T = x_0\) then it&#39;s game over since \(\|x_0 - x^\star\| = M\). It&#39;s clear that any convex &#40;indeed, affine&#41; combination of the \(x_t\) is always equal to \(x_0\), so, unlike in the stochastic case, this does not help either.</p>
 <h3 id="linearity_is_hard">Linearity is hard</h3>
