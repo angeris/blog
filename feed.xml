@@ -88,7 +88,7 @@
 \[
     0 \le \|x_{T+1} - x^\star\|^2 = \|\Pi(x_T - \eta g_T) - x^\star\|^2 \le \|x_T - \eta g_T - x^\star\|^2.
 \]
-<p>&#40;Note the second inequality, there.&#41; The rest of the proof proceeds identically as the previous one, except instead of exact equalities, we have inequalities coming from the nonexpansivene property of \(\Pi\).</p>
+<p>&#40;Note the second inequality, there.&#41; The rest of the proof proceeds identically as the previous one, except instead of exact equalities, we have inequalities coming from the nonexpansiveness property of \(\Pi\).</p>
 <h2 id="no_bounds_on_distance">No bounds on distance</h2>
 <p>The above proof is kind of interesting: we used the &#40;trivial&#41; inequality</p>
 \[
