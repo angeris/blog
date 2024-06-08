@@ -87,7 +87,7 @@ identical to the previous proof since
 \]
 (Note the second inequality, there.) The rest of the proof proceeds identically
 as the previous one, except instead of exact equalities, we have inequalities
-coming from the nonexpansivene property of $\Pi$.
+coming from the nonexpansiveness property of $\Pi$.
 
 ## No bounds on distance
 The above proof is kind of interesting: we used the (trivial) inequality
@@ -120,7 +120,7 @@ T-1$ and $g_T = \alpha(x_0 - y)$, where $\alpha = L/\|x_0 - y\|$, which we can
 do as adversaries. Then the $x^\star$ that maximizes regret is
 the one that solves
 \[
-\min_{z \in C} \sum_{t=1}^T g_t^Tz = \min_{z \in C}~ (x_0 - y)^Tz,
+\min_{z \in C} \left(\sum_{t=1}^T g_t^Tz\right) = \min_{z \in C} \left((x_0 - y)^Tz\right),
 \]
 with minimizer $x^\star = y$. Since $x_T = x_0$ then it's game over since
 $\|x_0 - x^\star\| = M$. It's clear that any convex (indeed, affine)
