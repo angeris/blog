@@ -9,14 +9,14 @@
 
   <channel>
     <title>
-      <![CDATA[  {{fd2rss website_title}}  ]]>
+      <![CDATA[  Longest Path Search  ]]>
     </title>
-    <link> {{website_url}} </link>
+    <link> https://angeris.github.io/blog/ </link>
     <description>
-      <![CDATA[  {{fd2rss website_description}}  ]]>
+      <![CDATA[  Because finding the shortest path is boring &#40;and not NP-hard&#41;.  ]]>
     </description>
     <atom:link
-      href="{{fd_rss_feed_url}}"
+      href="https://angeris.github.io/blog/feed.xml"
       rel="self"
       type="application/rss+xml" />
 

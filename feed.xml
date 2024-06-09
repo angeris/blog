@@ -23,6 +23,107 @@
 
 <item>
   <title>
+    <![CDATA[  A simple proof of Shapley–Folkman  ]]>
+  </title>
+  <link> https://angeris.github.io/blog/content/simple-proof-shapley/index.html </link>
+  <guid> https://angeris.github.io/blog/content/simple-proof-shapley/index.html </guid>
+  <description>
+    <![CDATA[  Another blogpost.  ]]>
+  </description>  
+  
+  <content:encoded>
+    <![CDATA[  
+<p>This post goes over a simple proof of the Shapley–Folkman lemma; which I haven&#39;t seen published &#40;though I&#39;m sure everyone has a version or variation of this sitting around&#33;&#41;. It is &#40;roughly&#41; a combination of <a href="https://link.springer.com/article/10.1007/BF01212924">Zhao&#39;s proof</a> &#40;which uses a simple result about conic combinations, but has a funky construction&#41; and <a href="https://www.cambridge.org/core/journals/mathematical-proceedings-of-the-cambridge-philosophical-society/article/abs/measures-of-the-nonconvexity-of-sets-and-the-shapleyfolkmanstarr-theorem/CC6968E282DB5EB24BD6F7400EA2C2A4">Cassel&#39;s proof</a>, which, while nice, has unfortunately very annoying notation. Specifically, this post proves the &quot;slightly more general&quot; statement given in Cassel&#39;s proof which is a little nicer to handle, via a technique that is similar to Zhao&#39;s, but uses only linear independence.</p>
+<p>Anyways, if you&#39;re reading this I probably don&#39;t have to convince you that this lemma is very nice, but, if you&#39;re unsure, I&#39;d recommend just Googling &quot;Shapley–Folkman &#91;your field of choice&#93;&quot; and you&#39;ll probably get a hit or two that might be interesting.</p>
+<h2 id="statement">Statement</h2>
+<p>The statement of Shapley–Folkman is a little funny if you&#39;re unfamiliar with it, but it&#39;s the following.</p>
+<p>We have a collection of sets \(S_1, \dots, S_m \subseteq \mathbf{R}^n\), which need not be convex. Then, let \(y\) be a vector in the sum of the convex hulls of these sets; <em>i.e.</em>, one which satisfies</p>
+\[
+    y = x_1 + x_2 + \dots + x_m,
+\]
+<p>where \(x_i \in \mathbf{conv}(S_i)\). Then \(y\) can be written in the following way</p>
+\[
+    y = \tilde x_1 + \tilde x_2 + \dots + \tilde x_m,
+\]
+<p>where \(\tilde x_i \in \mathbf{conv}(S_i)\), and, for at least \(m-n\) indices \(i\), satisfies \(\tilde x_i \in S_i\). In other words, given any point \(y\) which is the sum of points lying in the convex hulls of the sets, \(\mathbf{conv}(S_i)\), then \(y\) can be written as the sum of points lying in the <em>actual sets</em> \(S_i\), for &#39;most&#39; indices \(i\); no more than \(n\) indices will lie in \(\mathbf{conv}(S_i)\) but not \(S_i\).</p>
+<p>One simple interpretation of this statement is that, given a lot of sets \(S_i\), relative to the number of dimensions &#40;when \(m \gg n\)&#41;, then the resulting set, which is the &#40;Minkowski&#41; sum of sets, is &#39;very close&#39; to a set that is convex.</p>
+<h2 id="proof">Proof</h2>
+<p>The proof requires a little bit of extra set up, but not too much.</p>
+<h3 id="statement_variation">Statement variation</h3>
+<p>We will show the proof in an inductive way, with a slightly different set up than the one above. In our set up, there exist some sets \(S_1, \dots, S_m
+\subseteq \mathbf{R}^m\), and some point \(y \in \mathbf{R}^n\) such that</p>
+\[
+    y = x_1 + \dots + x_m,
+\]
+<p>and each \(x_i \in \mathbf{conv}(S_i)\). Using the definition of the convex hull, this is the same as saying that, for each set \(i=1, \dots, m\), there exist \(z_{ij} \in
+S_i\) and weights \(\gamma_{ij} > 0\) with \(j=1, \dots, n_i\), such that</p>
+\[
+    x_i = \sum_{j=1}^{n_i} \gamma_{ij}z_{ij},
+\]
+<p>and the weights sum to \(1\):</p>
+\[
+    \sum_{j=1}^{n_i} \gamma_{ij} = 1,
+\]
+<p>for each \(i=1, \dots, m\). In this case the \(n_i\) denotes the number of elements of \(S_i\) which \(x_i\) is the convex combination of, with nonzero coefficients. &#40;This is why we require that \(\gamma_{ij} > 0\), otherwise, if \(\gamma_{ij} = 0\) for some index \(j\), we can remove this entry and reduce \(n_i\) by 1.&#41; We will show the following inequality can be made true:</p>
+\[
+    \sum_{i=1}^m \left(n_i - 1\right) \le n.
+\]
+<p>This implies the original claim, since \(x_i\) lies in \(S_i\) if, and only if, \(n_i = 1\), so the sum is an upper bound on the number of sets which have \(n_i >
+1\).</p>
+<h3 id="proof__2">Proof</h3>
+<p>Given that set up, we will show that, if</p>
+\[
+    \sum_{i=1}^m \left(n_i - 1\right) > n,
+\]
+<p>then we can always set at least one of the weights \(\gamma_{ij}\) to \(0\) &#40;potentially changing some other weights along the way&#41; such that the left hand side decreases by at least 1. Applying this statement inductively gives us the result.</p>
+<p>So, let&#39;s get to it&#33;</p>
+<p>The one trick in this proof is to note that we can choose a &#39;privileged&#39; index \(j\), which, in our case, we will just choose to be the first index. We&#39;ll write \(x_i\), for each \(i\), splitting out the first entry:</p>
+\[
+    x_i = \gamma_{i1} z_{i1} + \sum_{j=2}^{n_i} \gamma_{ij}z_{ij}.
+\]
+<p>We interpret the sum on the right as zero if \(n_i = 1\). &#40;Note that, by definition, \(n_i\) cannot be zero&#33; So this expression is always well-defined.&#41;</p>
+<p>We can then write \(y\) as</p>
+\[
+    y = \sum_{i=1}^m\gamma_{i1} z_{i1} + \sum_{i=1}^m\sum_{j=2}^{n_i} \gamma_{ij}z_{ij}.
+\]
+<p>Now, if \(\sum_{i=1}^m (n_i - 1) > n\), then there are at least \(n+1\) vectors in the second sum and \(n\) is the dimension of the vectors. So there exists some weights \(\alpha_{ij} \in \mathbf{R}\) such that</p>
+\[
+    \sum_{i=1}^m\sum_{j=2}^{n_i} \alpha_{ij}(z_{ij} - z_{i1}) = 0,
+\]
+<p>where \(i=1, \dots, m\) and \(j=2, \dots, n_i\). &#40;Very importantly, note that the \(\alpha_{ij}\) need not be nonnegative&#33;&#41; Because this is zero, we can multiply it by any constant, \(\eta \in \mathbf{R}\) and add it to our expression for \(y\) to get, for any choice of \(\eta\):</p>
+\[
+    y = \sum_{i=1}^m\left(\gamma_{i1} - \eta \sum_{j=2}^{n_i} \alpha_{ij}\right) z_{i1} + \sum_{i=1}^m\sum_{j=2}^{n_i} (\gamma_{ij} + \eta \alpha_{ij}) z_{ij}.
+\]
+<p>There exists at least one \(\eta\) such that at least one of the terms</p>
+\[
+    \gamma_{i1} - \eta \sum_{j=2}^{n_i} \alpha_{ij}, \quad \text{or} \quad \gamma_{ij} + \eta\alpha_{ij},
+\]
+<p>where \(i=1, \dots, n\) and \(j=1, \dots, n_i\), is equal to zero. The smallest &#40;in absolute value&#41; such \(\eta\) will ensure that all of the terms are nonnegative and at least one is zero. &#40;Why?&#41; For this \(\eta\), define</p>
+\[
+    \tilde \gamma_{i1} = \gamma_{i1} - \eta \sum_{j=2}^{n_i} \alpha_{ij}, \quad \text{and} \quad
+    \tilde \gamma_{ij} = \gamma_{ij} + \eta\alpha_{ij},
+\]
+<p>for \(i=1, \dots, m\) and \(j=1, \dots, n_i\). From the definition of \(\eta\) and the discussion above, we know that \(\tilde \gamma_{ij} \ge 0\), with at least one entry zero, and satisfies</p>
+\[
+    \sum_{j=1}^{n_i} \tilde \gamma_{ij} = \sum_{j=1}^{n_i} \gamma_{ij}  = 1,
+\]
+<p>for each \(i=1, \dots, m\), which is easy to show from the definition. Removing the nonzero entries, we then reduce at least one \(n_i\) by one, proving the claim.</p>
+<h3 id="discussion">Discussion</h3>
+<p>Interestingly, this procedure is essentially constructive: we only need the ability to solve a linear system to perform it, but the &#39;algorithm&#39; provided will be very slow. &#40;I say &quot;essentially&quot; here, since there&#39;s a hidden cost: we also need to be able to write an explicit convex combination of points in \(S_i\) that yield \(x_i\); it is not obvious how to do that in general if the set \(S_i\) does not admit a simple polyhedral description, but is fairly &#39;easy&#39; for many structured sets in practice.&#41;</p>
+ ]]>
+  </content:encoded>
+    
+  <pubDate>Sun, 09 Jun 2024 00:00:00 +0000</pubDate>  
+  
+  
+  <atom:author>
+    <atom:name>Guillermo Angeris</atom:name>
+  </atom:author>
+        
+</item>
+
+<item>
+  <title>
     <![CDATA[  Another short proof of OCO and miscellanea  ]]>
   </title>
   <link> https://angeris.github.io/blog/content/another-oco-proof/index.html </link>
@@ -394,66 +495,6 @@ X = \sum_{i=1}^n X_i,
   </content:encoded>
     
   <pubDate>Tue, 20 Jun 2023 00:00:00 +0000</pubDate>  
-  
-  
-  <atom:author>
-    <atom:name>Guillermo Angeris</atom:name>
-  </atom:author>
-        
-</item>
-
-<item>
-  <title>
-    <![CDATA[  When are fields bounded over all possible designs?  ]]>
-  </title>
-  <link> https://angeris.github.io/blog/content/bounded-field/index.html </link>
-  <guid> https://angeris.github.io/blog/content/bounded-field/index.html </guid>
-  <description>
-    <![CDATA[  Another blogpost.  ]]>
-  </description>  
-  
-  <content:encoded>
-    <![CDATA[  
-<p>There are a few important questions that popped up while writing many of the bounds present in <a href="https://arxiv.org/abs/2011.08002">this paper</a>. One of the main questions that popped up repeatedly was: when are the solutions to the physics equation bounded over all possible designs?</p>
-<p>One specific case in which this question is useful is in the field bounds paragraph in pages 18 and 19 of <a href="https://arxiv.org/abs/2011.08002">the paper</a>, though more generally this question can also help answer a number of other important results &#40;which we do not mention here&#41;.</p>
-<p>Unfortunately, this post will end in a bit of a disappointing note: the result given here depends on some condition which is likely not easy to check in practice. On the other hand, it does lead to a suggestive definition I have never seen before of an &quot;elementwise nonexpansive operator.&quot; I would be quite curious to see if anyone had any references&#33;</p>
-<h2 id="problem_formulation">Problem formulation</h2>
-<p>In this case, we will again focus on the <em>diagonal physics equation</em>. Here, the physics equation is:</p>
-\[
-    (A + \mathbf{diag}(\theta))z = b,
-\]
-<p>where \(\theta \in \mathbf{R}^n\) are the design parameters &#40;usually the permittivities in many problems&#41; while \(z \in \mathbf{R}^n\) are the fields. In general, we are only allowed to choose parameters within a certain range, so we will write this as</p>
-\[
--1 \le \theta \le 1,
-\]
-<p>without loss of generality. &#40;In particular, if \(\theta\) is constrained to lie within any range, we can always rescale the physics equation to make \(\theta\) lie between \(-1\) and \(1\). For more details on how to do this, see section 1.2 of <a href="https://arxiv.org/pdf/2011.08002">the paper</a>.&#41;</p>
-<h3 id="eliminating_the_design_variable">Eliminating the design variable</h3>
-<p>Taking this formulation, we can &quot;eliminate&quot; the design parameter. In other words, we will write a number of equations, depending only on the variable \(z\), such that, when \(z\) satisfies all the equations, there exists some design \(\theta \in [-1, 1]^n\) which makes the physics equation true.</p>
-<p>To do this, note that, we can take the initial physics equation and rearrange it as follows:</p>
-\[
-Az - b = -\mathbf{diag}(\theta)z.
-\]
-<p>Taking the elementwise absolute value of both sides gives</p>
-\[
-|Az - b| = |\mathbf{diag}(\theta)z|.
-\]
-<p>&#40;Here, we interpret \(|\cdot|\) to be elementwise.&#41; Because \(|\theta| \le 1\), we can see that</p>
-\[
-|\mathbf{diag}(\theta)z| \le |z|,
-\]
-<p>so</p>
-\[
-|Az - b| \le |z|.
-\]
-<p>In fact, \(|\mathbf{diag}(\theta)z| \le |z|\) is true if, and only if, \(|\theta| \le 1\). Meaning the inequality we just derived, depending only on \(z\), is true if, and only if, there exists some design \(\theta\) satisfying \(|\theta| \le 1\) that makes the original physics equation true.</p>
-<p>The nice part about this equation is that it encapsulates all of the important parts of the problem in a simple-to-reason-about format. &#40;It also suggests some <a href="https://www.nature.com/articles/s41598-021-92451-1">interesting heuristics</a>, but that&#39;s for another time&#33;&#41;</p>
-<h2 id="when_are_fields_bounded">When are fields bounded?</h2>
-<p>Now, finally, to answer the question&#33; At least partially.</p>
-<p>The proof technique here is relatively simple: we will </p>
- ]]>
-  </content:encoded>
-    
-  <pubDate>Sun, 17 Apr 2022 00:00:00 +0000</pubDate>  
   
   
   <atom:author>
@@ -2277,8 +2318,8 @@ K &= K_p + K_i + K_d\\
   <title>
     <![CDATA[  404  ]]>
   </title>
-  <link> https://angeris.github.io/blog/404/index.html </link>
-  <guid> https://angeris.github.io/blog/404/index.html </guid>
+  <link> https://angeris.github.io/blog/404.html </link>
+  <guid> https://angeris.github.io/blog/404.html </guid>
   <description>
     <![CDATA[  Another blogpost.  ]]>
   </description>  
