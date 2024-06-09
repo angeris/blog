@@ -45,7 +45,7 @@
 \[
     y = \tilde x_1 + \tilde x_2 + \dots + \tilde x_m,
 \]
-<p>where \(\tilde x_i \in \mathbf{conv}(S_i)\), where, importantly, for at least \(m-n\) indices \(i\), satisfies \(\tilde x_i \in S_i\). In other words, given any point \(y\) which is the sum of points lying in the convex hulls of the sets, \(\mathbf{conv}(S_i)\), then \(y\) can be written as the sum of points lying in the <em>actual sets</em> \(S_i\), for &#39;most&#39; indices \(i\); no more than \(n\) indices will lie in \(\mathbf{conv}(S_i)\) but not \(S_i\).</p>
+<p>where \(\tilde x_i \in \mathbf{conv}(S_i)\) and, importantly, for at least \(m-n\) indices \(i\), satisfies \(\tilde x_i \in S_i\). In other words, given any point \(y\) which is the sum of points lying in the convex hulls of the sets, \(\mathbf{conv}(S_i)\), then \(y\) can be written as the sum of points lying in the <em>actual sets</em> \(S_i\), for &#39;most&#39; indices \(i\); no more than \(n\) indices will lie in \(\mathbf{conv}(S_i)\) but not \(S_i\).</p>
 <p>One simple interpretation of this statement is that, given a lot of sets \(S_i\), relative to the number of dimensions &#40;when \(m \gg n\)&#41;, then the resulting set, which is the &#40;Minkowski&#41; sum of sets, is &#39;very close&#39; to a set that is convex.</p>
 <h2 id="proof">Proof</h2>
 <p>The proof requires a little bit of extra set up, but not too much.</p>
