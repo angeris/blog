@@ -31,3 +31,4 @@ Add here global latex commands to use throughout your pages.
 \newcommand{\E}{\mathbf{E}}
 \newcommand{\ones}{\mathbf{1}}
 \newcommand{\Pr}{\mathbf{Pr}}
+\newcommand{\conv}{\mathbf{conv}}
