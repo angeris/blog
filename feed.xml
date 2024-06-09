@@ -33,11 +33,11 @@
   
   <content:encoded>
     <![CDATA[  
-<p>This post goes over a simple proof of the Shapley–Folkman lemma; which I haven&#39;t seen published &#40;though I&#39;m sure everyone has a version or variation of this sitting around&#33;&#41;. It is &#40;roughly&#41; a combination of <a href="https://link.springer.com/article/10.1007/BF01212924">Zhao&#39;s proof</a> &#40;which uses a simple result about conic combinations, but has a funky construction&#41; and <a href="https://www.cambridge.org/core/journals/mathematical-proceedings-of-the-cambridge-philosophical-society/article/abs/measures-of-the-nonconvexity-of-sets-and-the-shapleyfolkmanstarr-theorem/CC6968E282DB5EB24BD6F7400EA2C2A4">Cassel&#39;s proof</a>, which, while nice, has unfortunately very annoying notation. Specifically, this post proves the &quot;slightly more general&quot; statement given in Cassel&#39;s proof which is a little nicer to handle, via a technique that is similar to Zhao&#39;s, but uses only linear independence.</p>
-<p>Anyways, if you&#39;re reading this I probably don&#39;t have to convince you that this lemma is very nice, but, if you&#39;re unsure, I&#39;d recommend just Googling &quot;Shapley–Folkman &#91;your field of choice&#93;&quot; and you&#39;ll probably get a hit or two that might be interesting.</p>
+<p>This post goes over a simple proof of the Shapley–Folkman lemma which I haven&#39;t seen published &#40;though I&#39;m sure everyone has a version or variation of this sitting around&#33;&#41;. It is &#40;roughly&#41; a combination of <a href="https://link.springer.com/article/10.1007/BF01212924">Zhao&#39;s proof</a> &#40;which uses a simple result about conic combinations, but has a funky construction&#41; and <a href="https://www.cambridge.org/core/journals/mathematical-proceedings-of-the-cambridge-philosophical-society/article/abs/measures-of-the-nonconvexity-of-sets-and-the-shapleyfolkmanstarr-theorem/CC6968E282DB5EB24BD6F7400EA2C2A4">Cassel&#39;s proof</a>, which, while nice, has unfortunately very annoying notation. Specifically, this post proves the &quot;slightly more general&quot; statement given in Cassel&#39;s proof which is a little nicer to handle, via a technique that is similar to Zhao&#39;s, but uses only linear independence.</p>
+<p>Anyways, if you&#39;re reading this I probably don&#39;t have to convince you that this lemma is very useful, but, if you&#39;re unsure, I&#39;d recommend just Googling &quot;Shapley–Folkman &#91;your field of choice&#93;&quot; and you&#39;ll probably get a hit or two that might be interesting.</p>
 <h2 id="statement">Statement</h2>
 <p>The statement of Shapley–Folkman is a little funny if you&#39;re unfamiliar with it, but it&#39;s the following.</p>
-<p>We have a collection of sets \(S_1, \dots, S_m \subseteq \mathbf{R}^n\), which need not be convex. Then, let \(y\) be a vector in the sum of the convex hulls of these sets; <em>i.e.</em>, one which satisfies</p>
+<p>We have a collection of sets \(S_1, \dots, S_m \subseteq \mathbf{R}^n\), which need not be convex. Let \(y \in \mathbf{R}^n\) be a vector in the sum of the convex hulls of these sets; <em>i.e.</em>, one which satisfies</p>
 \[
     y = x_1 + x_2 + \dots + x_m,
 \]
@@ -45,13 +45,13 @@
 \[
     y = \tilde x_1 + \tilde x_2 + \dots + \tilde x_m,
 \]
-<p>where \(\tilde x_i \in \mathbf{conv}(S_i)\), and, for at least \(m-n\) indices \(i\), satisfies \(\tilde x_i \in S_i\). In other words, given any point \(y\) which is the sum of points lying in the convex hulls of the sets, \(\mathbf{conv}(S_i)\), then \(y\) can be written as the sum of points lying in the <em>actual sets</em> \(S_i\), for &#39;most&#39; indices \(i\); no more than \(n\) indices will lie in \(\mathbf{conv}(S_i)\) but not \(S_i\).</p>
+<p>where \(\tilde x_i \in \mathbf{conv}(S_i)\), where, importantly, for at least \(m-n\) indices \(i\), satisfies \(\tilde x_i \in S_i\). In other words, given any point \(y\) which is the sum of points lying in the convex hulls of the sets, \(\mathbf{conv}(S_i)\), then \(y\) can be written as the sum of points lying in the <em>actual sets</em> \(S_i\), for &#39;most&#39; indices \(i\); no more than \(n\) indices will lie in \(\mathbf{conv}(S_i)\) but not \(S_i\).</p>
 <p>One simple interpretation of this statement is that, given a lot of sets \(S_i\), relative to the number of dimensions &#40;when \(m \gg n\)&#41;, then the resulting set, which is the &#40;Minkowski&#41; sum of sets, is &#39;very close&#39; to a set that is convex.</p>
 <h2 id="proof">Proof</h2>
 <p>The proof requires a little bit of extra set up, but not too much.</p>
 <h3 id="statement_variation">Statement variation</h3>
 <p>We will show the proof in an inductive way, with a slightly different set up than the one above. In our set up, there exist some sets \(S_1, \dots, S_m
-\subseteq \mathbf{R}^m\), and some point \(y \in \mathbf{R}^n\) such that</p>
+\subseteq \mathbf{R}^m\) and some point \(y \in \mathbf{R}^n\) such that</p>
 \[
     y = x_1 + \dots + x_m,
 \]
@@ -64,12 +64,13 @@ S_i\) and weights \(\gamma_{ij} > 0\) with \(j=1, \dots, n_i\), such that</p>
 \[
     \sum_{j=1}^{n_i} \gamma_{ij} = 1,
 \]
-<p>for each \(i=1, \dots, m\). In this case the \(n_i\) denotes the number of elements of \(S_i\) which \(x_i\) is the convex combination of, with nonzero coefficients. &#40;This is why we require that \(\gamma_{ij} > 0\), otherwise, if \(\gamma_{ij} = 0\) for some index \(j\), we can remove this entry and reduce \(n_i\) by 1.&#41; We will show the following inequality can be made true:</p>
+<p>for each \(i=1, \dots, m\). In this case, \(n_i\) denotes the number of elements of \(S_i\) whose convex combination results in \(x_i\), all with nonzero coefficients. &#40;This is why we require that \(\gamma_{ij} > 0\), otherwise, if \(\gamma_{ij} = 0\) for some index \(j\), we can remove this entry and reduce \(n_i\) by 1.&#41; We will show the following inequality can be made true:</p>
 \[
     \sum_{i=1}^m \left(n_i - 1\right) \le n.
 \]
 <p>This implies the original claim, since \(x_i\) lies in \(S_i\) if, and only if, \(n_i = 1\), so the sum is an upper bound on the number of sets which have \(n_i >
-1\).</p>
+1\); <em>i.e.</em>, the largest number of indices \(i\) with \(n_i > 1\) is \(n\), or, equivalently, at least \(m-n\) indices satisfy \(n_i = 1\) and therefore have \(x_i
+\in S_i\).</p>
 <h3 id="proof__2">Proof</h3>
 <p>Given that set up, we will show that, if</p>
 \[
