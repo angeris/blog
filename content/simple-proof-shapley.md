@@ -34,7 +34,7 @@ where $x_i \in \conv(S_i)$. Then $y$ can be written in the following way
 \[
     y = \tilde x_1 + \tilde x_2 + \dots + \tilde x_m,
 \]
-where $\tilde x_i \in \conv(S_i)$, where, importantly, for at least $m-n$
+where $\tilde x_i \in \conv(S_i)$ and, importantly, for at least $m-n$
 indices $i$, satisfies $\tilde x_i \in S_i$. In other words, given any point
 $y$ which is the sum of points lying in the convex hulls of the sets,
 $\conv(S_i)$, then $y$ can be written as the sum of points lying in the *actual
